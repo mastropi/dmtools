@@ -1,0 +1,13 @@
+Package: dmtools
+Type: Package
+Title: Tools for Data Exploration and Data Mining
+Version: 0.1.0
+Author: Daniel Mastropietro
+Maintainer: Daniel Mastropietro <mastropi@uwalumni.com>
+Description: The package can be grouped into functions that perform:
+    Data Manipulation
+    Plots
+    Support for Modeling and Evaluation
+License: GNU Public License
+Encoding: UTF-8
+LazyData: true
