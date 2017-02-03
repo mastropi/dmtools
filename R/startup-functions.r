@@ -2052,7 +2052,7 @@ plot.cdf = function(x, weight=NULL, probs=seq(0,1,0.01), empirical=TRUE, include
 # Parameters:   x: 							A numeric array (missing values are accepted and a warning is shown in that case)
 #								weight:					A numeric array containing weights for each value in x (used in the CDF computation).
 #																CURRENTLY IT IS ONLY USED WHEN empirical=TRUE.
-#								probs: 					Array of values between 0 and 1 defining the quantiles of x to compute.
+#								probs: 					Array of values between 0 and 1 defining the quantiles of x to compute. Only used if empirical=FALSE.
 #								empirical:			Flag indicating whether to compute the empirical CDF (as opposed to a fixed-quantile based CDF, where the quantiles are specified in 'probs').
 #								include.lowest: Flag indicating whether to include the lowest value of x as 0% percentile in the emprical=TRUE case.
 #								freq:						Flag indicating whether to show the cumulative number of cases on the vertical axis (instead of the cumulative percent).
@@ -2100,7 +2100,8 @@ plot.cdf = function(x, weight=NULL, probs=seq(0,1,0.01), empirical=TRUE, include
 		x.cdf = cdf.tab$x
 		cdf.values = cdf.tab$cdf*100
 		# Assign the quantiles/CDF of each x value as record label (for output purposes)
-		names(x.cdf) = paste(signif(cdf.values*100, digits=3), "%", sep="")		# digits=3 is used so that we get values like 10.3%, etc.
+		# (2017/01/25) These names are no longer used, since they are not output as row names of the output data frame.
+#		names(x.cdf) = paste(signif(cdf.values, digits=3), "%", sep="")
 	} else {
 		if (!is.null(weight)) {
 			indok = !is.na(x)
@@ -2119,7 +2120,8 @@ plot.cdf = function(x, weight=NULL, probs=seq(0,1,0.01), empirical=TRUE, include
 	if (reverse) {
 		cdf.values = 100 - cdf.values		# recall that cdf.values is in percent scale (not proportion)
 		# Udpate the record labels to reflect the reverse of the CDF computation
-		names(x.cdf) = paste(signif(cdf.values, digits=3), "%", sep="")		# digits=3 is used so that we get values like 10.3%, etc.
+		# (2017/01/25) These names are no longer used, since they are not output as row names of the output data frame.
+#		names(x.cdf) = paste(signif(cdf.values, digits=digits), "%", sep="")
 		if (is.null(paramsList$xlim)) {
 			paramsList$xlim = rev(range(x.cdf))
 		} else {
@@ -2181,8 +2183,12 @@ plot.cdf = function(x, weight=NULL, probs=seq(0,1,0.01), empirical=TRUE, include
 		output = xw.cdf
 		colnames(output) = c("q", deparse(substitute(x))[1], deparse(substitute(weight))[1])	# I use [1] after deparse(substitute()) because I got once an error where x was given as a long condition on a data frame and the result of deparse(substitute()) had length 2!!
 	} else {
-		output = as.data.frame(x.cdf)
-		colnames(output) = deparse(substitute(x))[1]
+		output = as.data.frame(cbind(cdf.values/100, x.cdf))
+		# Set the row names to be 1:nrows and the colum names to ("percentile", <analyzed variable name>)
+		# Note that the as.data.frame() call above sets the row names to be equal to the names in the x.cdf vector
+		# (but does NOT do so if I just convert x.cdf to a data frame!! --i.e. without column binding it to cdf.values/100 as done above)
+		rownames(output) = 1:nrow(output)
+		colnames(output) = c("quantile", deparse(substitute(x))[1])
 	}
 
 	return(invisible(output))
