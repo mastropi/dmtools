@@ -76,6 +76,7 @@ panel.smooth <- function(x, y, group, ...)
 # Modified: 2009/02/02
 {
 
+# Use the graphics::panel.smooth() function to plot points and add a LOESS fit line to them.
 
 }
 ########################################## FUNCTIONS TO ADD ###################################
@@ -83,19 +84,24 @@ panel.smooth <- function(x, y, group, ...)
 
 ####################################### AUXILIARY functions ###################################
 # INDEX (sorted in the order they are defined)
+# cdf (auxiliary function for plot.cdf)
 # getAxisLimits
+# getBounds
+# getParamsList
+# getVarType
 # pairsXAxisPosition
 # pairsYAxisPosition
 # checkVariables
+# ellipse, ellipsem, angle (auxiliary functions for plot.outliers2d)
+# extract
 # extractVariable
 # parseVariables
-# extract
 # who
 # whos
-# ellipse, ellipsem, angle (auxiliary functions for plot.outliers2d)
 
+# getAxisLimits
 # Get the axis limits of the current plot
-getAxisLimits = function(ext=0.04)
+getAxisLimits = function(ext=0.04, xaxs=par("xaxs"), yaxs=par("yaxs"))
 # Created: 			2013/12/23
 # Modified: 		2013/12/23
 # Author: 			Daniel Mastropietro
@@ -108,16 +114,20 @@ getAxisLimits = function(ext=0.04)
 #							 	This does not happen when xaxs and yaxs are equal to "i" (internal) the other possible value for these parameters.
 # Parameters:		ext: proportion of the axis limits range by which the user coordinates are extended.
 #								This is currently (version 3.0.1) equal to 4% as indicated by the 'xaxs' and 'yaxs' options of the par() documentation.
+#								NOTE: (2017/03/09) When creating a barplot with a line plot on a secondary axis
+#								(typically for showing #cases (first axis) and another variable on a different scale (secondary axis)), use xaxs="i"
+#								in order to make the x-axis positions of the two plots to match!
+#								For more info on this x-axis matching, see:
+#								http://stackoverflow.com/questions/29182758/how-to-get-the-x-coordinate-of-bars-in-barplot-in-r
+#								although here they do not mention the xaxs/yaxs option, but give other useful tips.
 # Examples:		 	axisLimits = getAxisLimits()
 {
 	# Read useful graphical parameters of the active plot
 	usr = par("usr")
-	xaxs = par("xaxs")
-	yaxs = par("yaxs")
 
 	xlim = usr[1:2]
 	ylim = usr[3:4]
-	if (xaxs == "r") {
+	if (xaxs == "r") {		# Note: the only implemented values of the xaxs and yaxs options in R are "r", "i". The other 3 options are NOT implemented.
 		# Range in the extended coordinates
 		xdelta = diff(xlim)
 		# Correct xlim values
@@ -135,6 +145,7 @@ getAxisLimits = function(ext=0.04)
 	return(c(xlim, ylim))
 }
 
+# getBounds
 # Return the lower and upper bound of intervals of the type (x1,x2] or [x1,x2), etc. and also the brackets
 # (Inspired by the midpoints() function published on Matt's Stats around May-2014, which I have implemented
 # as function extract())
@@ -148,6 +159,7 @@ getBounds <- function(x)
 	return(list(lower=lower, upper=upper, left=left, right=right, opleft=opleft, opright=opright))
 }
 
+# getVarType
 # Return the type of a variable in a data frame (character or numeric)
 getVarType = function(x)
 {
@@ -161,7 +173,30 @@ getVarType = function(x)
 	return(vartype)
 }
 
-# Define the position of the x-axis in a pairs plot
+# getParamsList
+#' Return the parameter list of a function call, including optional parameters
+#'
+#' @param call function call from which the parameter list should be returned. This can be retrieved using match.call()
+#' from within the function whose parameter list is of interest.
+#' @param ... optional parameters passed to the function call of interest.
+#' @return a list containing two attributes:
+#' <ul>
+#' <li> a list with all parameters passed to the function.
+#' <li> a list with the optional parameters passed to the function (through ...), which is a subset of the 'all parameters' list.
+#' </ul>
+getParamsList = function(call, ...) {
+  # Put all parameters into a parameter list (this includes the optional parameters)
+  paramsList = as.list(call)
+  # Get the optional parameters passed as ...
+  optionsList = list(...)
+  # Remove the function name from the all parameters list
+  paramsList[[1]] = NULL
+
+  return(list(allParams=paramsList, optionalParams=optionsList))
+}
+
+# pairsXAxisPosition 
+#' Define the position of the x-axis in a pairs plot
 pairsXAxisPosition = function(xaxt="s")
 # Created: 2013/09/16
 # Modified: 2013/09/16
@@ -189,8 +224,9 @@ pairsXAxisPosition = function(xaxt="s")
 
   return(list(side=side, outer=outer, line=line))
 }  
-  
-# Define the position of the y-axis in a pairs plot
+
+# pairsYAxisPosition 
+#' Define the position of the y-axis in a pairs plot
 pairsYAxisPosition = function(yaxt="s")
 # Created: 2013/09/16
 # Modified: 2013/09/16
@@ -219,6 +255,7 @@ pairsYAxisPosition = function(yaxt="s")
   return(list(side=side, outer=outer, line=line))
 }
 
+# CheckVariables
 # Check existence of variables in a data frame
 CheckVariables <- checkVariables <- check.variables <- function(data, vars, print=FALSE)
 # Created: 			05-Aug-2013
@@ -260,6 +297,7 @@ CheckVariables <- checkVariables <- check.variables <- function(data, vars, prin
   }
 }
 
+# extractVariable
 # Parse a variable passed to a function so that either the actual variable or a string representing a data frame's variable name are accepted
 extractVariable <- extract.variable <- function(dat, var)
 # Created: 			30-Mar-2014
@@ -289,14 +327,18 @@ extractVariable <- extract.variable <- function(dat, var)
 	return(var)
 }
 
+# parseVariables
 # Convert a list of variables which can be given as a blank/tab/line separated list or as an array into an array
 parseVariables <- function(vars) {
 # Created: 			30-Nov-2016
 # Modified: 		30-Nov-2016
 # Author: 			Daniel Mastropietro
+	# First remove any potential initial blanks or new lines (o.w. the first returned variable will be empty)
+	vars = sub("^[ \n]+", "", vars)
 	return(unlist(strsplit(vars, "[ \n]+")))	# Note: the white space matches one or more blanks or one or more tabs (see ?regex)
 }
 
+# extract
 # Extract the mid point, lower value or upper value of open, closed, semi-open intervals like those returned by the cut() function.
 # Taken from an e-mail received from R-Bloggers on 24-May-2014, originally published on Matt's Stats and stuff (not saved)
 extract <- function(intervals, digits=2, what=c("midpoint", "lower", "upper"))
@@ -316,6 +358,7 @@ extract <- function(intervals, digits=2, what=c("midpoint", "lower", "upper"))
 	return(out)
 }
 
+# who
 # List the names of the variables existing in an environment in a matrix-like form
 who = function(envir=.GlobalEnv)
 # Created: 			2008
@@ -324,6 +367,7 @@ who = function(envir=.GlobalEnv)
 	print(as.matrix(ls(envir=envir)))
 }
 
+# whos
 # List the names of the variables existing in an environment and their sizes in a matrix-like form
 whos = function(envir=.GlobalEnv, sortby=c("name","size"), decreasing=FALSE)
 # Created: 			2008
@@ -349,6 +393,7 @@ whos = function(envir=.GlobalEnv, sortby=c("name","size"), decreasing=FALSE)
 	cat("Size of objects in bytes\n")
 }
 
+# ellipse
 # Three auxiliary functions used by plot.outliers2d
 # ellipse() and ellipsem() were taken from: http://ms.mcmaster.ca/peter/s4c03/s4c03_0506/classnotes/DrawingEllipsesinR.pdf
 # The function ellipsem() addsthe ellipse t(x-mu)%*%amat%*%(x-mu) = c2 to the current plot or a new plot; 
@@ -411,6 +456,7 @@ angle = function (x, y)
   apply(cbind(x, y), 1, angle2) 
 }
 
+# cdf
 # 2014/07/17: Compute empirical CDF of a numeric variable
 # Application: initially tried to use to determine the sampling probabilities for a reject inference modeling simulation based on the distribution
 # of a score variable. But it turned out that this only works when the population from which the sample should be drawn has a uniform distribution
@@ -620,6 +666,7 @@ logitInv = function(x, adjust=0)
 # biplot.custom
 # pairs.custom
 # plot.axis
+# plot2				(NEW Mar-2017)
 # plot.bar		(NEW Mar-2014)
 # plot.binned
 # plot.cdf		(NEW Mar-2014)
@@ -1266,11 +1313,11 @@ plot.binned = function(
     }
     if (is.null(circles) & is.null(thermometers)) {
       # Plot circles by default whose size is defined by the number of cases in each categorized x point
-      symbols(x_center, y_center, circles=x_n, inches=inches, col=col, bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
+      symbols(x_center, y_center, circles=x_n, inches=inches, fg=col, bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
     } else {
         if (!is.null(circles)) {
           # Plot circles whose size is defined by the variable passed by the user
-          symbols(x_center, y_center, circles=eval(circles), inches=inches, col=col, bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
+          symbols(x_center, y_center, circles=eval(circles), inches=inches, fg=col, bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
         }
         if (!is.null(thermometers)) {
           # Plot thermometers
@@ -1700,6 +1747,64 @@ plot.axis = function(x, y, xticks=NULL, xlabels=NULL, las=1, grid=TRUE, lty.grid
 	{
 		abline(v=xticks, lty=lty.grid, lwd=lwd.grid)
 	}
+}
+
+# 2017/03/09
+# plot2
+#' @param x x-axis values for the primary plot.
+#' @param y y-axis values for the primary plot. If NULL, the 'x' values are plotted on the primary axis.
+#' @param x2 x-axis values for the secondary plot. If NULL, the primary x-axis values are used.
+#' @param y2 y-axis values for the secondary plot. If NULL, no secondary plot is produced.
+#' @param plot1 function to use for the primary axis plot.
+#' @param plot2 function to use for the secondary axis plot.
+#' @param plot1_options list containing the named options for the plot on the primary axis.
+#' @param plot2_options list containing the named options for the plot on the secondary axis.
+#' @param ... common options to use for both plots
+# TODO: The y2 values appear on the left vertical axis when plot1=plot and no x is given, even if I use quote(y)!
+plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=plot, plot1_options=list(), plot2_options=list(type="o", pch=21, col="red", bg="red"), ...) {
+	#paramsList = getParamsList(match.call(), ...)
+	plot1.name = deparse(substitute(plot1))
+	plot2.name = deparse(substitute(plot2))
+	
+	if (plot1.name == "barplot") {
+		# Generate the barplot and set the x values to be the x-axis position of the barplots
+		xaxs = "i"
+		x = do.call(plot1.name, c(list(x, xaxs=xaxs), plot1_options, ...))			# Use xaxs="i" (i.e. the x-axis spans just the data plotted, with no extension as is the case with default xaxs="s") so that the x-axis of the second plot matches the x-axis of the barplot!
+		# Get the x-axis limits of the above plot so that they can be used on the second plot
+		xlim = getAxisLimits(xaxs=xaxs)[1:2]
+
+		# Define the x2 values as x if NULL was given (i.e. the plot on the secondary axis shares the same x-axis values as the plot on the primary axis)
+		if (is.null(x2)) {
+			x2 = x
+		}
+	} else {
+		if (sortx) {
+			# Sort the x values in case the user asked to connect the points with lines
+			x = sort(x)
+		}
+  	do.call(plot1.name, c(list(x, y), plot1_options, ...))
+		# Get the x-axis limits of the above plot so that they can be used on the second plot
+		xlim = getAxisLimits()[1:2]
+		xaxs = par("xaxs")
+
+		# Define the x and y values to plot on the secondary axis
+		if (is.null(y)) {
+			# This means that the primary plot is the plot of 'x' and the x-axis values are just indices (i.e. consecutive integers from 1 to length(x))
+			# => the plot on the secondary axis should still have those values as x-axis
+			x2 = 1:length(y2)
+		}
+		if (is.null(x2)) {
+			# The x-axis values are shared with the primary plot
+			x2 = x
+		}
+  }
+
+	# Generate the plot on the secondary axis
+	if (!is.null(y2)) {
+		par(new=TRUE)
+		do.call(plot2.name, c(list(quote(x2), quote(y2), xlim=xlim, xaxs=xaxs, xaxt="n", yaxt="n", xlab="", ylab=""), plot2_options, ...))
+		axis(side=4, at=pretty(y), col=plot2_options$col, col.axis=plot2_options$col.axis)
+	}	
 }
 
 # plot.hist: Plot a histogram (i.e. plot boxes like the ones generated by hist())

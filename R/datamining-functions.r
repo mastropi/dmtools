@@ -242,8 +242,8 @@ GroupCategories = function(
 		# Settings for merging consecutive categories
 		pthr=c(0.50,0.10),	# Threshold for the p-value of the Chi-square test or t test that is used to decide whether contiguous categories are merged.
 												# Defaults to 0.5 for a categorical target and to 0.1 for continuous target.
-		propthr=0.01,				# Minimum proportion of cases (w.r.t. to total number of cases in dataset) to be observed in a category so that it can be let alone
-		nthr=20,						# Minimum number of cases in a category so that the category can be let alone
+		propthr=0.01,				# Minimum proportion of cases (w.r.t. to total number of cases in dataset) to be observed in a category so that it can be let alone. This parameter interacts with parameter nthr as the final threshold is a "minimum cases" threshold which is computed as the maximum between parameter nthr and the number of cases obtained from this propthr parameter.
+		nthr=20,						# Minimum number of cases in a category so that the category can be let alone. The final nthr is computed as the maximum between this parameter and the number of cases obtained from the propthr parameter.
 		othergroup=TRUE,		# Whether categories with too few cases (n < nthr) should be sent to the "other" group or instead joined to the category of the LEFT.
 		exclusions=NULL,		# Vector of categories to be excluded from the merge (they should be left alone)
 												# *** NOTE: exclusions COULD ALSO BE WISHED TO BE ASSIGNED TO A SINGLE GROUP CALLED "other" (note the small caps becase capital letters come before non-capital letters in the ASCII coding!) ***
@@ -1711,6 +1711,10 @@ if (save) {
 #								in order to generate the SPSS code from it.
 #	- 2015/07/05: Create WOE variables in R.
 #								Add the option of creating the WOE variables directly in the R dataset, in addition to generating the SPSS code.
+
+# TESTS TO PERFORM ON THIS FUNCTION (when writing the package and using function test_that())
+# - All missing values: IV of categorical/continuous variable having all NA/NaN values
+# - Weird Target: IV when target takes exactly one value
 InformationValue = function(
   data,             		# Dataset containing the variables to analyze listed in 'vars', 'varclass' and/or 'varnum
   target,           		# Either an unquoted variable name or a string indicating the name of the binary target variable in 'data' on which the Information Value is computed
@@ -1857,11 +1861,18 @@ InformationValue = function(
     target = target  # A local copy of the variable passed in target is stored because the variable passed could be e.g. data$y and we want to get rid of the data frame in future references to 'target'.
   }
   tab = as.data.frame(table(target))  ## By default NA and NaN values in 'target' are EXCLUDED from the frequency table.
-  values = tab[,1]          # The first column of 'tab' contains the values taken by the target variable
+  values = tab[,1]          # The first column of 'tab' contains the values taken by the target variable (note that 'values' is a FACTOR variable)
   values = factor(values)   # Just in case, remove any non-occurring value of target
-  if (nlevels(values) != 2) {
+  nlevels = nlevels(values)
+  if (!nlevels %in% c(1, 2)) {
     # Note: deparse(substitute(target)) returns the variable name (instead of its value) passed in 'target'!
-    stop("The target variable '", targetname, "' is not binary. It takes the following values:\n", toString(values))
+    stop("The target variable '", targetname, "' must take at least 1 and at most 2 distinct values but it takes the following values:\n", toString(values))	# toString() returns e.g. "0, 1" if values = c(0,1)
+  } else {
+		# Compute the total target penetration
+		# (this is used when a continuous variable has all missing values (NA or NaN) to inform this number in the output IV and WOE tables)
+		# NOTE: when # distinct values = 1, we assume that the value that does NOT appear is the "LAST" one (recall that input parameter event="LAST" by default)
+		pctClassFIRST_total = tab[1,2] / sum(tab[,2]) * 100
+		pctClassLAST_total = 100 - pctClassFIRST_total
   }
 
   ### VARS, VARCLASS, VARNUM
@@ -1961,12 +1972,13 @@ InformationValue = function(
     # THIS IS VERY COMPLICATED TO DO SO I STORED THE PROCESS IN A FUNCTION!!
 		vartypes[[v]] = getVarType(data[,v])
 
-    # Compute the number of levels in the categorized continuous variable
+	  # Compute the number of levels in the categorized continuous variable
     checkGroups = FALSE
     	## This variable specifies whether the frequency of the groups obtained using cut() below should be checked for any of the groups being too small.
     	## Its value may be updated if breaks=NULL when the number of unique cut values is 2, because this may imply that both cut
     	## values are sufficiently populated and should be considered as separate groups.
     if (is.null(breaks)) {
+    	# => Set the value of cutvalues which has not yet been set when breaks is NULL
       # CAUTION! Do NOT update variable 'breaks' because its value is used in the next loop to check if the user passed parameter 'breaks'!!
       # NOTES:
       # - I use na.rm=TRUE because otherwise, if any NaN or NA are present in the data, an error is raised.
@@ -1984,7 +1996,7 @@ InformationValue = function(
       # groups generated by the chosen cutvalues are check for their size below: if one of them is too small, the
       # groups are recomputed by putting them into the same group (this is simply done by eliminating the -Inf value from
       # the cutvalues array).
-      if (cutvalues["0%"] == cutvalues[2]) {		# No need to check for the length of cutvalues since its lengths is at least 2: the 0% quantile and the 100% quantile
+      if (sum(!is.na(cutvalues)) > 0 && cutvalues["0%"] == cutvalues[2]) {		# No need to check for the length of cutvalues since its lengths is at least 2: the 0% quantile and the 100% quantile
 				if (length(unique(cutvalues)) == 2) { checkGroups = TRUE }
 				cutvalues = unique(c(-Inf, cutvalues))
       } else {
@@ -1993,59 +2005,70 @@ InformationValue = function(
 			}
     }
 
-    # Create the categorical grouping variable that is passed to the iv() function below
-    # Note the use of include.lowest=TRUE so that the smallest value is NOT assigned to group NA
-    group = cut(data[,v], breaks=cutvalues, include.lowest=TRUE)
-    if (checkGroups) {
-    	# checkGroups is set to FALSE just before the if (is.null(breaks)) block above and is set to TRUE inside the block
-    	# if the following conditions are both satisfied:
-    	# - the number of unique cut values (as created by the cut() function above) is exactly 2
-    	# - the number of cases in the 0% quantile is the same as the number of cases in the next quantile
-    	#   (which means that the lowest value of the variable is very frequent)
-    	groupFreq = table(group)
-    	if (min(groupFreq) / sum(groupFreq) < 0.1 * 1/groups) {
-    		# When the occurrence of one of the two groups in the variable is much smaller than the expected group size (given by 1/groups)
-    		# update the groups by removing the -Inf from the lower end of the cut values, so that only one group is created for the whole
-    		# variable. This happens when the variable takes just two values and one of the values has a very low frequency.
-		    group = cut(data[,v], breaks=cutvalues[-1], include.lowest=TRUE)
-		  }
-    }
+		if (sum(!is.na(cutvalues)) == 0) {
+			# This means that the analyzed variable has no valid values (i.e. they are all NA or NaN)
+			# => Set the WOE and IV info to NA
+			nlevels = 1	# This is used below to increment lastrow (for the next loop)
+			nmiss = sum(is.na(data[,v]))
+			WOE[lastrow+1,] = cbind(v, "numeric", "continuous", NaN, nmiss, signif(pctClassFIRST_total, digits=3), signif(pctClassLAST_total, digits=3), as.character(NA), NA, NA)
+			WOE[lastrow+2,] = c("--TOTAL--", "---------", "-----------", NA, nmiss, signif(pctClassFIRST_total, digits=3), signif(pctClassLAST_total, digits=3), as.character(NA), NA, NA)
+			IV[i,] = c(v, "numeric", "continuous", nmiss, 1, NA, NA)
+		} else {
+			# Create the categorical grouping variable that is passed to the iv() function below
+			# Note the use of include.lowest=TRUE so that the smallest value is NOT assigned to group NA
+			group = cut(data[,v], breaks=cutvalues, include.lowest=TRUE)
+			if (checkGroups) {
+				# checkGroups is set to FALSE just before the if (is.null(breaks)) block above and is set to TRUE inside the block
+				# if the following conditions are both satisfied:
+				# - the number of unique cut values (as created by the cut() function above) is exactly 2
+				# - the number of cases in the 0% quantile is the same as the number of cases in the next quantile
+				#   (which means that the lowest value of the variable is very frequent)
+				groupFreq = table(group)
+				if (min(groupFreq) / sum(groupFreq) < 0.1 * 1/groups) {
+					# When the occurrence of one of the two groups in the variable is much smaller than the expected group size (given by 1/groups)
+					# update the groups by removing the -Inf from the lower end of the cut values, so that only one group is created for the whole
+					# variable. This happens when the variable takes just two values and one of the values has a very low frequency.
+					group = cut(data[,v], breaks=cutvalues[-1], include.lowest=TRUE)
+				}
+			}
 
-    # Compute the Information Value
-    # First replace NA values by NaN so that missing values in 'v' are included in the analysis as another group value!
-    # (Note that both NA and NaN values in the analyzed variable 'v' are mapped to group=NA by the cut() function above
-    # so any NaN values present in the original 'v' variable are finally assigned to group=NaN after doing the NA replacement here)
-    # (Note also that in order to replace NA with NaN, we first need to "unfactor" the group variable (using as.character()),
-    # otherwise the NA values will still be there!
-    group = factor(group)					# 2014/01/06: Remove non-occurring factors (o.w. there is an error when assigning the output from the iv() function to the WOE matrix because the iv() function returns a matrix whose rows are given by the populated groups!
-    group.levels = levels(group)
-    group = as.character(group)
-    indNA = is.na(group)
-    foundNA = FALSE
-    if (sum(indNA) > 0) {
-      foundNA = TRUE
-      group[indNA] = NaN
-    }
-    # Reconstruct 'group' as a factor but KEEPING THE ORIGINAL ORDER OF THE LEVELS (so that e.g. [1,3] < (3,Inf], which in terms of 'as.character(group)' is NOT the case)
-    # The ordered=TRUE option is not really necessary but I keep it here because the group levels are really ordered this way
-    # Note that I place the NaN value as the LAST level because this is how NaN is placed for CATEGORICAL variables (i.e. those passed in parameter 'varclass')
-    group = factor(group, levels=c(group.levels, rep(NaN, foundNA)), ordered=TRUE)
-    nlevels = nlevels(group)
-    InfValue = iv(target, group, x=data[,v], stat=stat, event=event)
+			# Compute the Information Value
+			# First replace NA values by NaN so that missing values in 'v' are included in the analysis as another group value!
+			# (Note that both NA and NaN values in the analyzed variable 'v' are mapped to group=NA by the cut() function above
+			# so any NaN values present in the original 'v' variable are finally assigned to group=NaN after doing the NA replacement here)
+			# (Note also that in order to replace NA with NaN, we first need to "unfactor" the group variable (using as.character()),
+			# otherwise the NA values will still be there!
+			group = factor(group)					# 2014/01/06: Remove non-occurring factors (o.w. there is an error when assigning the output from the iv() function to the WOE matrix because the iv() function returns a matrix whose rows are given by the populated groups!
+			group.levels = levels(group)
+			group = as.character(group)
+			indNA = is.na(group)
+			foundNA = FALSE
+			if (sum(indNA) > 0) {
+				foundNA = TRUE
+				group[indNA] = NaN
+			}
+			# Reconstruct 'group' as a factor but KEEPING THE ORIGINAL ORDER OF THE LEVELS (so that e.g. [1,3] < (3,Inf], which in terms of 'as.character(group)' is NOT the case)
+			# The ordered=TRUE option is not really necessary but I keep it here because the group levels are really ordered this way
+			# Note that I place the NaN value as the LAST level because this is how NaN is placed for CATEGORICAL variables (i.e. those passed in parameter 'varclass')
+			group = factor(group, levels=c(group.levels, rep(NaN, foundNA)), ordered=TRUE)
+			nlevels = nlevels(group)
+			InfValue = iv(target, group, x=data[,v], stat=stat, event=event)
 
-    # Store the results of the current variable into the WOE and IV data frame
-    rows = (lastrow+1):(lastrow+nlevels)
-    WOE[rows,] = cbind(v, "numeric", "continuous", as.character(InfValue$group), InfValue$nobs, InfValue$pctClassFIRST, InfValue$pctClassLAST, InfValue$stat, InfValue$woe, InfValue$iv)
-      ## The use of as.character(InfValue$group) is important because o.w. its values are shown as numbers, because of the fact that group is a factor variable!
-    totalnobs = sum(InfValue$nobs)
-    totalpctClassFIRST = sum(InfValue$nobs*InfValue$pctClassFIRST) / totalnobs
-    totalpctClassLAST = sum(InfValue$nobs*InfValue$pctClassLAST) / totalnobs
-    totalwoe = sum(InfValue$woe)
-    totaliv = sum(InfValue$iv)
-    WOE[rows[nlevels]+1,] = c("--TOTAL--", "---------", "-----------", NA, totalnobs, signif(totalpctClassFIRST, digits=3), signif(totalpctClassLAST, digits=3), NA, signif(totalwoe, digits=4), signif(totaliv, digits=4))
-    IV[i,] = c(v, "numeric", "continuous", totalnobs, nlevels, signif(totalwoe, digits=4), signif(totaliv, digits=4))
-    # Update lastrow for the next variable
-    lastrow = lastrow + nlevels + 1
+			# Store the results of the current variable into the WOE and IV data frame
+			rows = (lastrow+1):(lastrow+nlevels)
+			WOE[rows,] = cbind(v, "numeric", "continuous", as.character(InfValue$group), InfValue$nobs, InfValue$pctClassFIRST, InfValue$pctClassLAST, InfValue$stat, InfValue$woe, InfValue$iv)
+				## The use of as.character(InfValue$group) is important because o.w. its values are shown as numbers, because of the fact that group is a factor variable!
+			totalnobs = sum(InfValue$nobs)
+			totalpctClassFIRST = sum(InfValue$nobs*InfValue$pctClassFIRST) / totalnobs
+			totalpctClassLAST = sum(InfValue$nobs*InfValue$pctClassLAST) / totalnobs
+			totalwoe = sum(InfValue$woe)
+			totaliv = sum(InfValue$iv)
+			WOE[rows[nlevels]+1,] = c("--TOTAL--", "---------", "-----------", NA, totalnobs, signif(totalpctClassFIRST, digits=3), signif(totalpctClassLAST, digits=3), NA, signif(totalwoe, digits=4), signif(totaliv, digits=4))
+			IV[i,] = c(v, "numeric", "continuous", totalnobs, nlevels, signif(totalwoe, digits=4), signif(totaliv, digits=4))
+		}
+
+		# Update lastrow for the next variable
+		lastrow = lastrow + nlevels + 1
   }
 
   # Convert the numeric columns in WOE and IV to 'numeric' because by default all numbers are set to characters in a data frame!
