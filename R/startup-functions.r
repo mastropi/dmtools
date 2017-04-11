@@ -96,6 +96,7 @@ panel.smooth <- function(x, y, group, ...)
 # extract
 # extractVariable
 # parseVariables
+# setDefaultOptions
 # who
 # whos
 
@@ -356,6 +357,19 @@ extract <- function(intervals, digits=2, what=c("midpoint", "lower", "upper"))
 								lower			= round(lower, digits),
 								upper			= round(upper, digits))
 	return(out)
+}
+
+# setDefaultOptions
+#' Sets a list to a set of default values
+#'
+#' @param optionsList named list of options to set to default values if the option is not given.
+#' @param optionsList_default named list of default option values to set in \code{optionsList}.
+#' @return updated optionsList with the unset names appearing in optionsList_default set to their default value.
+setDefaultOptions = function(optionsList, optionsList_default) {
+	for (prop in setdiff( names(optionsList_default), names(optionsList) )) {
+		optionsList[[prop]] = optionsList_default[[prop]]
+	}
+	return(optionsList)
 }
 
 # who
@@ -1761,11 +1775,27 @@ plot.axis = function(x, y, xticks=NULL, xlabels=NULL, las=1, grid=TRUE, lty.grid
 #' @param plot2_options list containing the named options for the plot on the secondary axis.
 #' @param ... common options to use for both plots
 # TODO: The y2 values appear on the left vertical axis when plot1=plot and no x is given, even if I use quote(y)!
-plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=plot, plot1_options=list(), plot2_options=list(type="o", pch=21, col="red", bg="red"), ...) {
+plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=plot, plot1_options=list(), plot2_options=list(type="o", pch=21, col="red", bg="red", col.axis="red"), ...) {
 	#paramsList = getParamsList(match.call(), ...)
 	plot1.name = deparse(substitute(plot1))
 	plot2.name = deparse(substitute(plot2))
-	
+
+	#---------- Parse input parameters
+	# Set default plotting options
+	plot1_options_default = list()
+	plot1_options = setDefaultOptions(plot1_options, plot1_options_default)
+	plot2_options_default = list(type="o", pch=21, col="red", bg="red", col.axis="red")
+	plot2_options = setDefaultOptions(plot2_options, plot2_options_default)
+	# Secondary axis label
+	y2lab = plot2_options$ylab
+	plot2_options$ylab = NULL
+	if (!is.null(y2lab)) {
+		# Leave space for the label of the secondary axis
+		op.mar = par("mar", no.readonly=TRUE); on.exit(par(mar=op.mar))
+		par(mar=op.mar + c(0,0,0,1))
+	}
+	#---------- Parse input parameters
+
 	if (plot1.name == "barplot") {
 		# Generate the barplot and set the x values to be the x-axis position of the barplots
 		xaxs = "i"
@@ -1804,6 +1834,10 @@ plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=p
 		par(new=TRUE)
 		do.call(plot2.name, c(list(quote(x2), quote(y2), xlim=xlim, xaxs=xaxs, xaxt="n", yaxt="n", xlab="", ylab=""), plot2_options, ...))
 		axis(side=4, at=pretty(y), col=plot2_options$col, col.axis=plot2_options$col.axis)
+		# Add the label for the secondary axis
+		if (!is.null(y2lab)) {
+			mtext(side=4, text=y2lab, line=2, col=plot2_options$col.axis)
+		}
 	}	
 }
 

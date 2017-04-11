@@ -242,8 +242,11 @@ GroupCategories = function(
 		# Settings for merging consecutive categories
 		pthr=c(0.50,0.10),	# Threshold for the p-value of the Chi-square test or t test that is used to decide whether contiguous categories are merged.
 												# Defaults to 0.5 for a categorical target and to 0.1 for continuous target.
-		propthr=0.01,				# Minimum proportion of cases (w.r.t. to total number of cases in dataset) to be observed in a category so that it can be let alone. This parameter interacts with parameter nthr as the final threshold is a "minimum cases" threshold which is computed as the maximum between parameter nthr and the number of cases obtained from this propthr parameter.
-		nthr=20,						# Minimum number of cases in a category so that the category can be let alone. The final nthr is computed as the maximum between this parameter and the number of cases obtained from the propthr parameter.
+		propthr=0.01,				# Minimum proportion of cases (w.r.t. to total number of cases in dataset) to be observed in a category so that it can be left alone.
+												# This parameter interacts with parameter nthr as the final threshold is a "minimum cases" threshold which is computed as the maximum between parameter nthr and the number of cases obtained from this propthr parameter.
+												# Set this parameter to NULL if only the nthr value should be considered for determining such threshold.
+		nthr=20,						# Minimum number of cases in a category so that the category can be left alone. The final nthr is computed as the maximum between this parameter and the number of cases obtained from the propthr parameter.
+												# Set this parameter to NULL if only the propthr value should be considered for determining such threshold.
 		othergroup=TRUE,		# Whether categories with too few cases (n < nthr) should be sent to the "other" group or instead joined to the category of the LEFT.
 		exclusions=NULL,		# Vector of categories to be excluded from the merge (they should be left alone)
 												# *** NOTE: exclusions COULD ALSO BE WISHED TO BE ASSIGNED TO A SINGLE GROUP CALLED "other" (note the small caps becase capital letters come before non-capital letters in the ASCII coding!) ***
@@ -304,7 +307,7 @@ GroupCategories = function(
 	# Output: a vector containing the updated columns of the input x
 	{
 		# Initialize the output of the function
-		xout = array(NA, dim=ncol(x)); dimnames(xout) = list(colnames(x))		# dimnames of an array should be defined as a a list...(!)
+		xout = array(NA, dim=ncol(x)); dimnames(xout) = list(colnames(x))		# dimnames of an array should be defined as a list...(!)
 		
 		if (type == "cat") {
 			# Sum vertically
@@ -467,7 +470,14 @@ GroupCategories = function(
 		# In general, the left category may be the last x category existing in the GROUP to the left (when merges have already occurred).
 		# The right category is defined as the x category that coincides with the next new group value (stored in rownames(xout)[j+1]
 		ileft = i
-		iright = which(categories==rownames(xout)[j+1])
+		iright = which(categories==rownames(xout)[j+1])	# (2017/03/29: THIS LINE FAILS WHEN na.rm=FALSE!!)
+if (length(iright) == 0) {
+	cat("*** CATEGORIES ***\n")
+	print(length(categories))
+	cat("*** xout ***\n")
+	print(xout)
+	print(length(xout))
+}
 
 		# Assign a value to RIGHT category/group of the xout output matrix (groups[j+1])
 		# This category/group could potentially be merged with the LEFT category/group (groups[j]) or o.w. sent to the "other" group.
@@ -510,7 +520,7 @@ GroupCategories = function(
 				# containing the indices of the x categories that are sent to the "other" group
 				ind2remove = NULL
 				if (ncases.left < nthr) {
-					if (print) cat("\n", tabstr, "--> LEFT category sent to OTHER group because size <", nthr, ":", rownames(xout)[j])
+					if (print) cat("\n", tabstr, "--> LEFT category sent to OTHER group because size <", nthr, ": category =", rownames(xout)[j])
 					# Collapse the LEFT category/group to the "other" group 
 					xother = fxCollapseGroups(rbind(xother, xout[j,]), type)
 					ogroups = paste(ogroups, groups[j], sep=", ")
@@ -525,7 +535,7 @@ GroupCategories = function(
 					groups[j] = i
 				}
 				if (ncases.right < nthr) {
-					if (print) cat("\n", tabstr, "--> RIGHT category sent to OTHER group because size <", nthr, ":", rownames(xout)[j+1])
+					if (print) cat("\n", tabstr, "--> RIGHT category sent to OTHER group because size <", nthr, ": category =", rownames(xout)[j+1])
 					# Collapse the RIGHT category/group to the "other" group 
 					xother = fxCollapseGroups(rbind(xother, xout[j+1,]), type)
 					ogroups = paste(ogroups, groups[j+1], sep=", ")
@@ -2646,6 +2656,9 @@ roc <- function(formula, data, weights=NULL,
 		## Note that we cbind() just column 2 of 'probs' because the min and max pm are stored together as a matrix
 		## having column names "pm.1" and "pm.2", which however cannot be referenced separately.
 	colnames(tbl.df) <- c(clase.values, "min.prob", "max.prob")
+
+	# Sort groups by decreasing order as we assume that the event of interest is the largest value of the target variable (e.g. 1 for a 0/1 binary target)
+	tbl.df <- tbl.df[order(as.numeric(rownames(tbl.df)), decreasing=TRUE),]
 
 	# Add a first row with all 0s to facilitate calculations of cumulative and inverse cumulative values below
 	first.row <- as.data.frame( matrix(nrow=1, ncol=4, data=c(0,0,NA,NA)) )
