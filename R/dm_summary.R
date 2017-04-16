@@ -117,6 +117,8 @@ dm_summary = function(
 
 		# Transpose the stats data frame so that the summary statistics are along the columns
 		summary.out = as.data.frame( t( rbind(dat.stats, dat.percentiles) ) )
+		summary.out$pmiss = (summary.out$n - summary.out$neff) / summary.out$n
+		summary.out = summary.out[, c("n", "neff", "pmiss", stats)]
 
 		# Replace "0%" with "min" and "100%" with "max"
 		if ("0%" %in% colnames(summary.out)) summary.out = rename.vars(summary.out, from="0%", to="min", info=FALSE)

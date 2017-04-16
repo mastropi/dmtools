@@ -11,3 +11,4 @@ Description: The package can be grouped into functions that perform:
 License: GNU Public License
 Encoding: UTF-8
 LazyData: true
+Depends: gdata, sqldf

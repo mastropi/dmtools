@@ -791,7 +791,7 @@ if (length(iright) == 0) {
 # TODO:
 # - 2015/06/27: Add a parameter so that the user can specify that if a value is not found among the original values to be categorized
 # they can decide to assign it to the OTHER group or leave it at its original value. Right now it is left untouched at its original value.
-# Also, RAISE A WARNING when a value found in the input data is not a valid value! 
+# Also, RAISE A WARNING when a value found in the input data is not a valid value!
 AssignCategories = function(dat, vars, newvars, newvalues, groupedCat)
 # Created:			27-Mar-2014
 # Author:				Daniel Mastropietro
@@ -813,6 +813,9 @@ AssignCategories = function(dat, vars, newvars, newvalues, groupedCat)
 #									vars.gc[[2]] = GroupCategories(tofit$z, tofit$y)										# Categorize varibale z in terms of target y
 #									newvalues[[1]] = c(10, 20, 999)																			# Categories of the new categorized variable x_cat
 #									newvalues[[2]] = c("1-GRP3", "2-GRP5", "ZZ-OTHER", "ZZZ-UNKNOWN")		# Categories of the new categorized variable z_cat
+#									OR... the new values could be read from the output of GroupCategories()
+#									newvalues = lapply(vars.gc, function(x), rownames(x$outbars))
+#									Finally we creat the categorized/grouped variables:
 #									tofit = AssignCategories(tofit, "x z", "x_cat z_cat", newvalues, vars.gc)
 {
 	# Check if the variables passed were passed as arrays (length>1) or strings (length=1)
@@ -841,6 +844,8 @@ AssignCategories = function(dat, vars, newvars, newvalues, groupedCat)
 			cat("Group", j, "(", length(ind), "):\n\t", paste(names4group, collapse="\n\t "), "\n")
 			cat("\t ---> assigned to:", newvalues[[i]][j], "\n\n")
 		}
+		# Convert the grouped variable into a factor
+		dat[,newv] = as.factor(dat[,newv])
 	}
 	
 	return(dat)
@@ -2757,14 +2762,14 @@ roc <- function(formula, data, weights=NULL,
 	      xlab = xlab, ylab = ylab,
 	      main = title, cex.main=cex.main, lwd=lwd)
 	    lines(c(0, 1), c(0, 1), col = 'red', lty = 3)
-			text(0.6, cex * pos / 7, paste(label, ':\nAUC=', formatC(AUC, format='g', round.AUC), ', AR/Gini=', formatC(AR, format='g', round.AUC), sep=""), cex = cex, col = color)
+			text(0.5, cex * pos / 7, paste(label, ': AUC=', formatC(AUC, format='g', round.AUC), ', AR/Gini=', formatC(AR, format='g', round.AUC), sep=""), cex = cex, col = color)
 			if (!is.null(weights)) {
 				plot(tbl.df$WeightedSpecInv, tbl.df$WeightedSens, type = 'o', pch=21, col=color, bg=color,
 						xlim = c(0, 1), ylim = c(0, 1),
 						xlab = xlab, ylab = ylab,
 						main = paste("Weighted", title), cex.main=cex.main, lwd=lwd)
 				lines(c(0, 1), c(0, 1), col = 'red', lty = 3)
-				text(0.6, cex * pos / 7, paste(label, ':\nWeighted AUC=', formatC(AUC.weighted, format='g', round.AUC), ', AR/Gini=', formatC(AR.weighted, format='g', round.AUC), sep=""), cex = cex, col = color)
+				text(0.5, cex * pos / 7, paste(label, ': Weighted AUC=', formatC(AUC.weighted, format='g', round.AUC), ', AR/Gini=', formatC(AR.weighted, format='g', round.AUC), sep=""), cex = cex, col = color)
 				par(op)
 			}
 		} else {
@@ -2775,13 +2780,13 @@ roc <- function(formula, data, weights=NULL,
 	    plot(tbl.df$SpecInv, tbl.df$Sens, type = 'o', pch=21, col=color, bg=color, 
 	      xlim = c(0, 1), ylim = c(0, 1), lwd=lwd,
 	      ann = FALSE, axes = FALSE)
-			text(0.6, cex * pos / 7, paste(label, ':\nAUC=', formatC(AUC, format='g', round.AUC), ', AR/Gini=', formatC(AR, format='g', round.AUC), sep=""), cex = cex, col = color)
+			text(0.5, cex * pos / 7, paste(label, ': AUC=', formatC(AUC, format='g', round.AUC), ', AR/Gini=', formatC(AR, format='g', round.AUC), sep=""), cex = cex, col = color)
 			if (!is.null(weights)) {
 				par(mfg=c(1,2))
 				plot(tbl.df$WeightedSpecInv, tbl.df$WeightedSens, type = 'o', pch=21, col=color, bg=color,
 						xlim = c(0, 1), ylim = c(0, 1), lwd=lwd,
 						ann = FALSE, axes = FALSE)
-				text(0.6, cex * pos / 7, paste(label, ':\nWeighted AUC=', formatC(AUC.weighted, format='g', round.AUC), ', AR/Gini=', formatC(AR.weighted, format='g', round.AUC), sep=""), cex = cex, col = color)
+				text(0.5, cex * pos / 7, paste(label, ': Weighted AUC=', formatC(AUC.weighted, format='g', round.AUC), ', AR/Gini=', formatC(AR.weighted, format='g', round.AUC), sep=""), cex = cex, col = color)
 			}
 		}
 	}

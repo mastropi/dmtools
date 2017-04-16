@@ -1327,11 +1327,11 @@ plot.binned = function(
     }
     if (is.null(circles) & is.null(thermometers)) {
       # Plot circles by default whose size is defined by the number of cases in each categorized x point
-      symbols(x_center, y_center, circles=x_n, inches=inches, fg=col, bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
+      symbols(x_center, y_center, circles=x_n, inches=inches, fg="black", bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
     } else {
         if (!is.null(circles)) {
           # Plot circles whose size is defined by the variable passed by the user
-          symbols(x_center, y_center, circles=eval(circles), inches=inches, fg=col, bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
+          symbols(x_center, y_center, circles=eval(circles), inches=inches, fg="black", bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
         }
         if (!is.null(thermometers)) {
           # Plot thermometers
@@ -1348,7 +1348,7 @@ plot.binned = function(
             ifelse(g<0,0,ifelse(g>1,1,g))
             fg = rgb(r,g,0,1)
           } else {
-            fg = col
+            fg = "black"
           }
           symbols(x_center, y_center, thermometers=eval(thermometers), inches=inches, col="black", fg=fg, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
           # Add a text showing the target values
