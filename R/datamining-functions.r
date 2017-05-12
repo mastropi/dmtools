@@ -207,6 +207,127 @@ GenerateCodeSPSS_WOEVariables = function(
 
 
 
+##################################### GroupAndAssignCategories ################################
+GroupAndAssignCategories = function(
+		dat,								# Analysis dataset
+		vars,								# String or array containing the analysis variable names
+		target,							# String with the target variable name in dataset 'dat'
+		dat4assign=NULL,		# Dataset containing the analysis variable where the assignment should take place (instead of in dataset 'dat')
+		decreasing=TRUE,		# How the x categories should be sorted for the analysis based on the y values. Either TRUE (by decreasing y), FALSE (by increasing y) or NA (alphabetical order)
+		type="cat",					# Type of target variable y: "cat" (for categorical) or "cont" (for continuous). This affects the test that is used for significant differences among contiguous x categories.
+		event="1",					# Event of interest of categorical variable y when type="cat"
+		stat="mean",				# Statistics to use for the computation of the representative value of y for each category of x when type != "cat"
+		na.rm=FALSE,				# Whether NAs in the x variable should be excluded from the analysis. Note that NAs in the y variable are still acceptable but are always ignored. (For more information of this treatment, see help(table))
+		# Settings for merging consecutive categories
+		pthr=c(0.50,0.10),	# Threshold for the p-value of the Chi-square test or t test that is used to decide whether contiguous categories are merged.
+												# Defaults to 0.5 for a categorical target and to 0.1 for continuous target.
+		propthr=0.01,				# Minimum proportion of cases (w.r.t. to total number of cases in dataset) to be observed in a category so that it can be let alone
+		nthr=20,						# Minimum number of cases in a category so that the category can be let alone
+		othergroup=TRUE,		# Whether categories with too few cases (n < nthr) should be sent to the "other" group or instead joined to the category of the LEFT.
+		exclusions=NULL,		# Array containing categories to be excluded from the merge (they should be left alone)
+												# *** NOTE: exclusions COULD ALSO BE WISHED TO BE ASSIGNED TO A SINGLE GROUP CALLED "other" (note the small caps becase capital letters come before non-capital letters in the ASCII coding!) ***
+		# New grouped variables settings
+		keepvalues=TRUE,		# Whether to use the ungrouped values of the analyzed variable as labels for the grouped categories, or instead use index numbers representing the values' rank where the rank is defined based on the value of parameter 'decreasing'.
+		prefix="",					# Prefix to use for the new grouped variable names
+		suffix="_cat",			# Suffix to use for the new grouped variable names
+		# Output settings
+		printgrouping=TRUE,	# Whether to print messages about the merging of the categories and its properties
+		printassign=TRUE,		# Whether to print messages on the new groups to be assigned to each variable's value
+		plot=TRUE,					# Whether to plot the evolution of the merging
+		cex=0.8,						# Character expansion factor for annotations in the plots except for the cex.names option of barplot()
+		cex.names=0.6				# Character expansion factor for the names (values of categorical variable) of the barplot
+	) {
+
+	# Parse input parameters 
+	vars = parseVariables(vars)
+	varsNotFound = checkVariables(dat, c(vars, target))
+	stopifnot(!is.null(target) && length(target) == 1 && length(varsNotFound) == 0)
+	
+	if (is.null(dat4assign)) dat4assign = dat
+
+	# New variables to create (they are stored in a data frame which are appended to the input dataset at the end
+	datout = as.data.frame( matrix(nrow=nrow(dat4assign), ncol=length(vars)) )
+	# Names for the new grouped variables
+	vars_grouped = paste(prefix, vars, suffix, sep="")
+	colnames(datout) = vars_grouped
+
+	# Run the GroupCategories on each analysis variable
+#	grouplabels = list()				 # List containing the labels to use for the new groups in each analyzed variable
+	for (i in seq_along(vars)) {
+		v = vars[i]
+		vv = vars_grouped[i]
+		gc = GroupCategories(
+								dat[,v],
+								dat[,target],
+								decreasing=decreasing,
+								type=type,
+								event=event,
+								stat=stat,
+								na.rm=na.rm,
+								varname=v,
+								pthr=pthr,
+								propthr=propthr,
+								nthr=nthr,
+								othergroup=othergroup,
+								exclusions=exclusions,
+								print=printgrouping,
+								plot=plot,
+								cex=cex,
+								cex.names=cex.names
+							)
+
+			#-- Create a named array (grouplabels) containing the labels for the new grouped variable. The names are the original variable values to assign the new labels by direct index access!
+			# From the output of GroupCategories() we can easily get the group labels since the indices used as rownames of the 'outbars' attribute
+			# give the row numbers in the 'bars' attribute, a data frame that contains the original variable values.
+			groupindices = rownames(gc$outbars)
+			# Use the original variable values as names of 'grouplabels' so that they can be used for fast indexing of actual data to group
+			values = rownames(gc$bars)
+			grouplabels = vector(mode="character", length=length(values))
+			# ********************************************************************************************************************
+			# IMPORTANT: The names of 'grouplabels' should be assigned to 'values' but by first converting those 'values' to a FACTOR!
+			# This is tricky as not doing so would work in most cases; the problem happens when one of the values is empty (""), and
+			# this empty value does NOT work when indexing (e.g. groupvalues[""] returns NA!). Setting the names of 'groupvalues'
+			# to the FACTOR values of 'values' (i.e. to values "1", "2", "3", ... avoids this problem, as the empty name ("") is
+			# converted to a number.
+			# ********************************************************************************************************************
+			names(grouplabels) = as.character( as.numeric( factor(values) ) )				# e.g. "2", "3", "1", "4"; i.e. the values in 'values' but indexed with consecutive integers based on their alphabetical order
+
+			# Store in grouplabels the grouped values corresponding to each original value
+			for (indstr in groupindices) {		# indstr is the indices given as a comma separated string (e.g. "1, 3, 4")
+				# Convert the string indices to actual indices (e.g. c(1, 3, 4))
+				ind = eval( parse(text=paste("c(", indstr, ")")) )
+				# Assign these labels to the grouplabels array at the indices given by 'ind' (e.g. original values "a" and "w" at positions 1 and 3 in array 'values' are assigned group label "a, w, x")
+				if (keepvalues) {
+					grouplabels[ind] = paste( values[ind], collapse=", " )
+				} else {
+					grouplabels[ind] = paste( ind, collapse=", " )
+				}
+			}
+
+			if (printassign) {
+				cat("\nMapping for variable", v, "...\n")
+				print( cbind(values, grouplabels) )
+			}
+
+			# Create the new grouped variable
+			datout[, vv] = as.factor( grouplabels[ as.character( as.numeric( factor(dat4assign[,v], levels=sort(values)) ) ) ] )
+				## NOTE: Again we use as.character( as.numeric() ) to access the label corresponding to the value of datassign[,v]
+				## as we did when defining names(grouplabels) above, BUT NOW we need to specify (with the levels= option)
+				## that the only known levels are the levels of names(grouplabels), i.e. the values in 'values', so that
+				## any new value in dat4assign[,v] that did NOT exist in dat[,v] will have NA as assigned value (since it
+				## was not seen during "training" of the value-grouping process.
+				## IMPORTANT: It's important to sort the values when defining the levels, otherwise the order of the levels
+				## is defined by the order they are seen in that array and therefore the values will most likely be mixed up!!
+	}
+
+	# Return the input dataset with the new variables attached
+	#return( AssignCategories(dat, vars, vars_cat, grouplabels, gc) )
+	return( as.data.frame( cbind(dat4assign, datout) ) )
+}
+##################################### GroupAndAssignCategories ################################
+
+
+
 ######################################## GroupCategories ######################################
 # 2014/03/26
 # [DONE-2014/03/28] UNDER DEVELOPMENT: The code below works but needs to be setup as a function. It was tested in the Moni project.
@@ -242,13 +363,10 @@ GroupCategories = function(
 		# Settings for merging consecutive categories
 		pthr=c(0.50,0.10),	# Threshold for the p-value of the Chi-square test or t test that is used to decide whether contiguous categories are merged.
 												# Defaults to 0.5 for a categorical target and to 0.1 for continuous target.
-		propthr=0.01,				# Minimum proportion of cases (w.r.t. to total number of cases in dataset) to be observed in a category so that it can be left alone.
-												# This parameter interacts with parameter nthr as the final threshold is a "minimum cases" threshold which is computed as the maximum between parameter nthr and the number of cases obtained from this propthr parameter.
-												# Set this parameter to NULL if only the nthr value should be considered for determining such threshold.
-		nthr=20,						# Minimum number of cases in a category so that the category can be left alone. The final nthr is computed as the maximum between this parameter and the number of cases obtained from the propthr parameter.
-												# Set this parameter to NULL if only the propthr value should be considered for determining such threshold.
+		propthr=0.01,				# Minimum proportion of cases (w.r.t. to total number of cases in dataset) to be observed in a category so that it can be let alone
+		nthr=20,						# Minimum number of cases in a category so that the category can be let alone
 		othergroup=TRUE,		# Whether categories with too few cases (n < nthr) should be sent to the "other" group or instead joined to the category of the LEFT.
-		exclusions=NULL,		# Vector of categories to be excluded from the merge (they should be left alone)
+		exclusions=NULL,		# Array containing categories to be excluded from the merge (they should be left alone)
 												# *** NOTE: exclusions COULD ALSO BE WISHED TO BE ASSIGNED TO A SINGLE GROUP CALLED "other" (note the small caps becase capital letters come before non-capital letters in the ASCII coding!) ***
 		# Output settings
 		print=TRUE,					# Whether to print messages about the merging of the categories and its properties
@@ -307,7 +425,7 @@ GroupCategories = function(
 	# Output: a vector containing the updated columns of the input x
 	{
 		# Initialize the output of the function
-		xout = array(NA, dim=ncol(x)); dimnames(xout) = list(colnames(x))		# dimnames of an array should be defined as a list...(!)
+		xout = array(NA, dim=ncol(x)); dimnames(xout) = list(colnames(x))		# dimnames of an array should be defined as a a list...(!)
 		
 		if (type == "cat") {
 			# Sum vertically
@@ -470,14 +588,7 @@ GroupCategories = function(
 		# In general, the left category may be the last x category existing in the GROUP to the left (when merges have already occurred).
 		# The right category is defined as the x category that coincides with the next new group value (stored in rownames(xout)[j+1]
 		ileft = i
-		iright = which(categories==rownames(xout)[j+1])	# (2017/03/29: THIS LINE FAILS WHEN na.rm=FALSE!!)
-if (length(iright) == 0) {
-	cat("*** CATEGORIES ***\n")
-	print(length(categories))
-	cat("*** xout ***\n")
-	print(xout)
-	print(length(xout))
-}
+		iright = which(categories==rownames(xout)[j+1])
 
 		# Assign a value to RIGHT category/group of the xout output matrix (groups[j+1])
 		# This category/group could potentially be merged with the LEFT category/group (groups[j]) or o.w. sent to the "other" group.
@@ -520,7 +631,7 @@ if (length(iright) == 0) {
 				# containing the indices of the x categories that are sent to the "other" group
 				ind2remove = NULL
 				if (ncases.left < nthr) {
-					if (print) cat("\n", tabstr, "--> LEFT category sent to OTHER group because size <", nthr, ": category =", rownames(xout)[j])
+					if (print) cat("\n", tabstr, "--> LEFT category sent to OTHER group because size <", nthr, ":", rownames(xout)[j])
 					# Collapse the LEFT category/group to the "other" group 
 					xother = fxCollapseGroups(rbind(xother, xout[j,]), type)
 					ogroups = paste(ogroups, groups[j], sep=", ")
@@ -535,7 +646,7 @@ if (length(iright) == 0) {
 					groups[j] = i
 				}
 				if (ncases.right < nthr) {
-					if (print) cat("\n", tabstr, "--> RIGHT category sent to OTHER group because size <", nthr, ": category =", rownames(xout)[j+1])
+					if (print) cat("\n", tabstr, "--> RIGHT category sent to OTHER group because size <", nthr, ":", rownames(xout)[j+1])
 					# Collapse the RIGHT category/group to the "other" group 
 					xother = fxCollapseGroups(rbind(xother, xout[j+1,]), type)
 					ogroups = paste(ogroups, groups[j+1], sep=", ")
@@ -847,7 +958,7 @@ AssignCategories = function(dat, vars, newvars, newvalues, groupedCat)
 		# Convert the grouped variable into a factor
 		dat[,newv] = as.factor(dat[,newv])
 	}
-	
+
 	return(dat)
 }
 ####################################### AssignCategories ######################################

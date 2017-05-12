@@ -41,6 +41,7 @@
 #' The columns in the output frequency table are:
 #' \itemize{
 #' \item var analysis variable name
+#' \item index column that indexes each non-NA and non-"other" variable value shown in the table
 #' \item value value taken by the variable
 #' \item freq frequency of the value
 #' \item prop relative frequency of the value w.r.t. all the records
@@ -69,7 +70,7 @@ dm_summary = function(
 		propmin=0.01,
 		miss=c(NA, NaN, "")) {
 
-  #-- Parse input parameters
+  #---------------------------------- Parse input parameters ----------------------------------
   varnum = parseVariables(varnum)
   varclass = parseVariables(varclass)
   stats = parseVariables(stats)
@@ -85,7 +86,7 @@ dm_summary = function(
   if (!is.null(target)) targetFlag = TRUE
  	if (!is.null(top) && top < 0) top = NULL
  	if (!is.null(freqmin) && freqmin < 0 || is.null(freqmin)) freqmin = 0
- 	if (is.null(propmin)) propmin = 1		# No additional filtering on propmin when propmin=NULL
+ 	if (is.null(propmin) && freqmin > 0) propmin = 1		# This implies that the prop >= propmin condition does NOT ADD NEW valid values to the set of valid values yielded by the freq >= freqmin condition
  	if (!is.null(propmin) && propmin < 0 || is.null(propmin)) propmin = 0
   #-- Parse input parameters
 
@@ -94,8 +95,10 @@ dm_summary = function(
 		# No variables to analyze...
 		return(NULL)
 	}
+  #---------------------------------- Parse input parameters ----------------------------------
 
-	#-- Summary statistics for continuous variables
+
+	#---------------------- Summary statistics for continuous variables -------------------------
   # Remove any factor attribute of continuous variables... (note that the simpler way of using dat[,varnum] = as.numeric(as.character(dat[,varnum])) does not work!)
   # NOTE that I don't update the 'dat' data frame because I don't want to remove the factor property for variables that are
   # analyzed both as continuous AND categorical variables.
@@ -124,8 +127,10 @@ dm_summary = function(
 		if ("0%" %in% colnames(summary.out)) summary.out = rename.vars(summary.out, from="0%", to="min", info=FALSE)
 		if ("100%" %in% colnames(summary.out)) summary.out = rename.vars(summary.out, from="100%", to="max", info=FALSE)
 	}
-  
-	#-- Frequency table for categorical variables
+  #---------------------- Summary statistics for continuous variables -------------------------
+
+
+	#----------------------- Frequency table for categorical variables --------------------------
 	if (!is.null(varclass) && length(varclass) > 0) {	# varclass can be empty either by being NULL or being equal to ""
 		# Compute the frequency table of all variables and return the result as a list (using lapply())
 		if (targetFlag) {
@@ -188,10 +193,10 @@ dm_summary = function(
 				if (nvalid == 0) {
 					indtop = NULL
 				} else {
-					if (top == 0) {		# top = 0 means that we want ALL occurrences of the categorical variable (but sorted)
+					if (!is.null(top) && top == 0) {	# top = 0 means that we want ALL occurrences of the categorical variable (but sorted)
 						indtop = 1:nvalid
 					} else {
-						indtop = 1:min(top, nvalid)  # Note that top is guaranteed to be >= 1 or NULL (NULL is ok with the min() function)
+						indtop = 1:min(top, nvalid)  		# Note that top is guaranteed to be >= 1 or NULL (NULL is ok with the min() function)
 					}
 				}
 				# Sort nonmissing values by decreasing frequency on the filtered variable's values
@@ -218,11 +223,13 @@ dm_summary = function(
 					tabv.other.agg = NULL
 				}
 
-				# Update the information on proportions (because now the data is sorted by decreasing frequency)
+				# Add an index column (1, 2, 3, ...) for the valid values and update the information on proportions (because now the data is sorted by decreasing frequency)
 				# NOTE that this proportion is computed BEFORE adding the NA information because the NA row stores
 				# a proportion that is computed differentely (on the total number of cases)
+				tabv.valid.sorted$index = 1:nrow(tabv.valid.sorted)
 				tabv.valid.sorted$prop = tabv.valid.sorted$Freq / ntotal_notmiss
 				if (nother > 0) {
+					tabv.other.agg$index = NA
 					tabv.other.agg$prop = tabv.other.agg$Freq / ntotal
 						## Note that for the "other" group we divide by the total number of cases (NOT by the total number of nonmissing cases)
 						## This is because freq("other") + freq("validtop") + freq("NA") = ntotal
@@ -234,44 +241,56 @@ dm_summary = function(
 				# it's not easy because of the NA values... aggregations using aggregate() omit NAs by default and I haven't found a way of including them
 				# as valid values (as there is no na.action= option that includes NAs!! (all the options EXCLUDE NAs (see help(na.action))
 				# In any case, right now in principle we get one row per type of missing value.
-				tab.freq = rbind( tabv.valid.sorted[indtop, , drop=FALSE], tabv.other.agg, cbind( tabv[indna, , drop=FALSE], prop=as.numeric(tabv[indna, "Freq"])/ntotal ))
+				tab.freq = rbind( tabv.valid.sorted[indtop, , drop=FALSE], tabv.other.agg, cbind( tabv[indna, , drop=FALSE], index=rep(NA, sum(indna)), prop=as.numeric(tabv[indna, "Freq"])/ntotal ))
 					## drop=FALSE and as.numeric() are important to avoid the error "names contain missing values",
 					## arising from the fact that the NA category generates a "missing value" name.
 
+				#-- Values that are added to the "Total" row below
 				# Number of valid and top variable's values (in this case this is the number of nonmissing values)
 				ntotal_validtop = sum(tabv.valid.sorted[indtop, "Freq"])
-				# Target penetration on the valid and top variable's values (i.e. nonmissing values)
-				target_validtop = weighted.mean(tabv.valid.sorted[indtop, "target"], tabv.valid.sorted[indtop, "Freq"])
+				if (targetFlag) {
+					# Target penetration on the valid and top variable's values (i.e. nonmissing values)
+					target_validtop = weighted.mean(tabv.valid.sorted[indtop, "target"], tabv.valid.sorted[indtop, "Freq"])
+				}
 			} else {
+				# All variable values should be reported
 				tab.freq = tabv
+				# Add an index variable (1, 2, ...) that numbers each variable value
+				tab.freq$index = 1:nrow(tab.freq)
 				# Compute the proportion of cases w.r.t. the number of nonmissing cases
 				tab.freq$prop = tab.freq$Freq / ntotal_notmiss
 				# For the NA cases, compute its percentage w.r.t. the total number of cases
 				tab.freq$prop[indna] = tab.freq$Freq[indna] / ntotal
 
+				#-- Values that are added to the "Total" row below
 				# Number of valid and top variable's values (in this case this is the number of nonmissing values)
 				ntotal_validtop = ntotal_notmiss
-				# Target penetration on the valid and top variable's values (i.e. nonmissing values)
-				target_validtop = weighted.mean(tab.freq[!indna, "target"], tab.freq[!indna, "Freq"])
+				if (targetFlag) {
+					# Target penetration on the valid and top variable's values (i.e. nonmissing values)
+					target_validtop = weighted.mean(tab.freq[!indna, "target"], tab.freq[!indna, "Freq"])
+				}
 			}
 
 			# Add the current frequency table to the output table
 			# (note that we add a new row with the total information, where the total nonmissing cases are shown
 			if (targetFlag) {
 				tab.out = rbind(tab.out,
-												cbind(var=rep(v, nrow(tab.freq)), tab.freq[, c("Var1", "Freq", "prop", "target")]),	# Resort the columns in tab.freq
-												cbind(var=v, Var1="--TOTAL(valid&top)--", Freq=ntotal_validtop, prop=ntotal_validtop/ntotal, target=target_validtop))
+												cbind(var=rep(v, nrow(tab.freq)), tab.freq[, c("index", "Var1", "Freq", "prop", "target")]),	# Resort the columns in tab.freq
+												cbind(var=v, index=NA, Var1="--TOTAL(valid&top)--", Freq=ntotal_validtop, prop=ntotal_validtop/ntotal, target=target_validtop))
 													## IMPORTANT: We need to use cbind() here and NOT c() because in the latter case we get an error that
 													## "--TOTAL--" is not a valid factor level! (because 'var' in the output data frame is considered a factor!)
 			} else {
 				tab.out = rbind(tab.out,
-												cbind(var=rep(v, nrow(tab.freq)), tab.freq),
-												cbind(var=v, Var1="--TOTAL(valid&top)--", Freq=ntotal_validtop, prop=ntotal_validtop/ntotal))		# IMPORTANT: We need to use cbind() here and NOT c() because in the latter case we get an error that "--TOTAL--" is not a valid factor level! (because 'var' in the output data frame is considered a factor!)
+												cbind(var=rep(v, nrow(tab.freq)), tab.freq[, c("index", "Var1", "Freq", "prop")]),
+												cbind(var=v, index=NA, Var1="--TOTAL(valid&top)--", Freq=ntotal_validtop, prop=ntotal_validtop/ntotal))		# IMPORTANT: We need to use cbind() here and NOT c() because in the latter case we get an error that "--TOTAL--" is not a valid factor level! (because 'var' in the output data frame is considered a factor!)
 			}			
 		}
-		colnames(tab.out) = c("var", "value", "freq", "prop", targetcol)
+		colnames(tab.out) = c("var", "index", "value", "freq", "prop", targetcol)
 	}
+	#----------------------- Frequency table for categorical variables --------------------------
 
+
+	#---------------------------------------- Return info ---------------------------------------
 	if (is.null(varclass) || length(varclass) == 0) {
 		return(summary.out)
 	} else if (is.null(varnum) || length(varnum) == 0) {
@@ -279,4 +298,5 @@ dm_summary = function(
   } else {
   	return(list(summary=summary.out, table=tab.out))
   }
+	#---------------------------------------- Return info ---------------------------------------
 }
