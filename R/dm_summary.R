@@ -106,8 +106,11 @@ dm_summary = function(
 		dat4summary = sapply(dat[,varnum, drop=FALSE], function(x) as.numeric(as.character(x)))
 		if (!is.null(percentiles) && length(percentiles) > 0) {
 			dat.percentiles = apply(dat4summary, 2, FUN=quantile, probs=percentiles/100, na.rm=TRUE)
+			percentiles.names = paste("p", percentiles, sep="")
+			rownames(dat.percentiles) = percentiles.names
 		} else {
 			dat.percentiles = NULL
+			percentiles.names = NULL
 		}
 		dat.stats = matrix(nrow=0, ncol=length(varnum))
 		# TODO: (2017/04/10) Try to improve performance here by computing all statistics at once!
@@ -121,11 +124,11 @@ dm_summary = function(
 		# Transpose the stats data frame so that the summary statistics are along the columns
 		summary.out = as.data.frame( t( rbind(dat.stats, dat.percentiles) ) )
 		summary.out$pmiss = (summary.out$n - summary.out$neff) / summary.out$n
-		summary.out = summary.out[, c("n", "neff", "pmiss", stats)]
+		summary.out = summary.out[, c("n", "neff", "pmiss", stats, percentiles.names)]
 
 		# Replace "0%" with "min" and "100%" with "max"
-		if ("0%" %in% colnames(summary.out)) summary.out = rename.vars(summary.out, from="0%", to="min", info=FALSE)
-		if ("100%" %in% colnames(summary.out)) summary.out = rename.vars(summary.out, from="100%", to="max", info=FALSE)
+		if ("p0" %in% colnames(summary.out)) summary.out = rename.vars(summary.out, from="p0", to="min", info=FALSE)
+		if ("p100" %in% colnames(summary.out)) summary.out = rename.vars(summary.out, from="p100", to="max", info=FALSE)
 	}
   #---------------------- Summary statistics for continuous variables -------------------------
 
