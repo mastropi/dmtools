@@ -2512,8 +2512,13 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=2
 
 	#---------------------------- Parse input parameters -------------------------------
 	# This parsing allows that these variables are specified as either names or actual numeric arrays
-	target = parseVariable(dat, target)
-	score = parseVariable(dat, score)
+	target = extractVariable(dat, target)
+	score = extractVariable(dat, score)
+  vars = parseVariables(vars)
+
+  if (is.null(target) || is.null(score) || is.null(vars)) {
+    stop("Not all variables passed in parameters 'target', 'score', 'vars' are valid.")
+  }
 
 	# Create the function call in order to avoid conflicts between the parameters passed by the user in ... and those
 	# explicitly listed in the function calls to plot.binned() below.
@@ -2557,10 +2562,6 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=2
 	print = paramsList$print
 	#---------------------------- Parse input parameters -------------------------------
 
-	# If vars is passed as a string convert it to an array of variable names
-	if (is.character(vars) & length(vars) == 1) {
-		vars = parseVariables(vars)
-	}
 	i = 0
 	for (v in vars) {
 		i = i + 1

@@ -307,25 +307,30 @@ extractVariable <- extract.variable <- function(dat, var)
 # Description: 	Parses variables passed to functions so that variable names are converted to the actual variable in the data frame.
 # Parameters:
 #             	data: matrix or data frame that should contain variable 'var'.
-#             	var: string (as in "x") or variable name (as in dat$x) that should be parsed.
+#             	var: string (as in "x") or variable name (as in dat$x, or dat[,"x"] or dat[,target] where target="x") that should be parsed.
 # Output: 			Either an error that the variable does not exist or the actual variable taken from data frame 'dat'
 # Examples:			target = "y"; target = extractVariable(toplot, target);
 #								target = dat$y; target = extractVariable(toplot, target);
 {
-	# Check if 'var' has been passed as a string (as in "x") or as a variable name (as in dat$x)
-	# NOTE that we don't use is.character(var) to accomplish this task because is.character(dat$x) returns TRUE when the x column
-	# in dat is of type character!
-	var_name = deparse(substitute(var))    	# this returns "\"x\"" when var = "x" and "x" if var = x (the variable x)
-  if (length(grep("\"", var_name)) > 0) {	# this is TRUE when var is already a string
-		var_name = var
-		if (!is.null(checkVariables(dat, var))) {
-			cat("The variables indicated above were not found in dataset '", deparse(substitute(dat)), "'\n", sep="")
-			return(NULL)
-		}
-		var = dat[,var] 
-	}
-
-	return(var)
+	# Check if 'var' evaluates to character (presumably meaning that the variable is given as a variable NAME (as opposed to a true R variable)
+  var_eval = try( eval(var) )
+  if (inherits(var_eval, "try-error")) {
+    return(NULL)
+  } else {
+    if (class(var_eval) == "character" && length(var_eval) == 1) {
+    	## NOTE: This function works as expected ALSO in the case when variable 'var' is given as the column of type character in a data frame with just one row
+    	## (in which case the above IF will return TRUE --and this is FINE because dat[,var] below evaluates to e.g. dat[,dat[,"x"]] which is the same as dat[,"x"]! --which is what we want, the column "x" in data frame dat)
+    	## HOWEVER, it will probably fail when we call extractVariable(dat, df[,"x"]) since dat[, df[,"x"]] is NOT equivalent to df[, df[,"x"]] or to dat[, dat[,"x"]]...
+    	## so this is the only scenario where the function will not return what we expect --we expect it to return simply df[,"x"] since df[,"x"] is an actual variable NOT a string naming a variable
+    	## --recall this is only a problem when df[,"x"] is of length 1, which is particularly a problem when we call e.g. df[ind, "x"] and ind has only one index)
+      if (!is.null(checkVariables(dat, var))) {
+        cat("The variables indicated above were not found in dataset '", deparse(substitute(dat)), "'\n", sep="")
+        return(NULL)
+      }
+      var = dat[,var] 
+    }
+    return(var)
+  }
 }
 
 # parseVariables
@@ -999,7 +1004,7 @@ plot.binned = function(
   col="light blue", col.pred="black", col.target="red", col.lm="blue", col.loess="green",
 	pointlabels=TRUE, limits=FALSE,		# 'limits' indicates whether to show the x limits of each bin as vertical gray lines (so that we know from where to where each points spans in terms of the x values in the bin)
 	bands=FALSE, width=1, stdCenter=TRUE, # stdCenter: whether to show the bands using the standard deviation of the *summarized* y value (calculated as scale/sqrt(n), where n is the number of cases in the x category), instead of showing the standard deviation of the y value, i.e. +/- 'scale'.
-  boxplots=FALSE, add=FALSE, offset=1, inches=0.5, size.min=0.05, cex.label=1,
+  boxplots=FALSE, add=FALSE, offset=1, inches=0.5, size.min=0.05, cex.label=0.5,
 	xlab=NULL, ylab=NULL, xlim=NULL, ylim=NULL, ylim2=NULL,  # ylim for the secondary axis used to plot the target values
 	xlimProperty=xlim, ylimProperty=ylim, ylim2Property=ylim,
 		# xlim, ylim, ylim2 can be either a regular c(minvalue, maxvalue) or a character value: "new", "orig" or "both"
