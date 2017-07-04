@@ -1228,16 +1228,19 @@ plot.binned = function(
   #------------------------------------ Data preparation --------------------------------------#
   
 
+  #----------------------------------------- Fits --------------------------------------------#
+	# Linear fit (weighted by the number of cases in each group)
+	if (lm)     { lmfit = try( lm(y_center ~ x_center, weights=x_n, data=toplot) ) }
+	# Loess fit (local regression, weighted by the number of cases in each group)
+	if (loess)  { loessfit = try( loess(y_center ~ x_center, weights=x_n, data=toplot) ) }
+  #----------------------------------------- Fits --------------------------------------------#
+
+
   #----------------------------------------- Plots -------------------------------------------#
   if (plot) {
 		#--- Prepare to plot
 		attach(toplot)
 		on.exit(detach(toplot), add=TRUE)		# The add=TRUE option adds the current command to the list of commands to execute "on exit" that has been started already.
-		# Linear fit (weighted by the number of cases in each group)
-		if (lm)     { lmfit = try( lm(y_center ~ x_center, weights=x_n) ) }
-		# Loess fit (local regression, weighted by the number of cases in each group)
-		if (loess)  { loessfit = try( loess(y_center ~ x_center, weights=x_n) ) }
-
 		# Parse the *limProperty variables and if passed assign their values to the corresponding *lim variables
 		# This was done to circumvect the problem when this function is called as a panel function in pairs() and trying to pass
 		# the parameter e.g. ylim="new". The pairs() function also receives the ylim parameter and it does not accept a non-numeric value!
@@ -2398,7 +2401,7 @@ plot.bar <- plot.bars <- function(x, y, event="1", FUN="table", na.rm=FALSE, dec
 
   # Initialize tab so that we can easily check whether the users passed a matrix as x or a vector
 	tab = NULL
-	
+
 	# Get the input variable names to use on messages to the user and as column names of the output table
 	# (I must do this here because below I may change the value of x and/or y)
 	xvarname = deparse(substitute(x))
@@ -2521,7 +2524,7 @@ plot.bar <- plot.bars <- function(x, y, event="1", FUN="table", na.rm=FALSE, dec
 
 	# When x is not a matrix and FUN == "table" add the counts of each y value to the output table
 	if (!is.matrix(x) & FUN == "table") {
-		tab = cbind(tab.counts[ord,], tab)
+		tab = cbind(tab.counts[ord, ,drop=FALSE], tab)
 	}
 
 	return(invisible(tab))

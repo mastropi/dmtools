@@ -276,6 +276,11 @@ GroupAndAssignCategories = function(
 								cex.names=cex.names
 							)
 
+		if (is.null(gc$outbars)) {
+		  # This means that no grouping was performed by the above call to GroupCategories()
+		  # => we just copy the input variable to the output "grouped" variable
+		  datout[, vv] = dat4assign[, v]
+		} else {
 			#-- Create a named array (grouplabels) containing the labels for the new grouped variable. The names are the original variable values to assign the new labels by direct index access!
 			# From the output of GroupCategories() we can easily get the group labels since the indices used as rownames of the 'outbars' attribute
 			# give the row numbers in the 'bars' attribute, a data frame that contains the original variable values.
@@ -318,6 +323,7 @@ GroupAndAssignCategories = function(
 				## was not seen during "training" of the value-grouping process.
 				## IMPORTANT: It's important to sort the values when defining the levels, otherwise the order of the levels
 				## is defined by the order they are seen in that array and therefore the values will most likely be mixed up!!
+		}
 	}
 
 	# Return the input dataset with the new variables attached
@@ -496,6 +502,13 @@ GroupCategories = function(
 									cex.main=cex,
 									cex.axis=cex,
 									plot=plot)
+
+	if (nrow(bars) <= 1) {
+	  # Either the input variable doesn't take any value or it takes just one value
+	  # => There is no process to perform, therefore return NULL as 'outbars' (since outbars contains the output of the process, but there is no process!)
+	  warning(paste("The analysis variable", deparse(substitute(x)), "has either no values or just one distinct value.\nThe process stops and NULL is returned as 'outbars' attribute in the output list.\n"))
+	  return(list(bars=bars, outbars=NULL))
+	}
 
 	# Compute the final minimum number of cases to let a category on its own
 	cat("Threshold for the minimum number of cases per category (based on parameters nthr ( =", nthr)
