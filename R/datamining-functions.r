@@ -2504,7 +2504,7 @@ ScoreDistribution = function(
 
 
 ########################################## ModelFit ###########################################
-ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=20, legend=TRUE, ...)
+ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=16, type=c("errors", "bubbles", "both"), legend=TRUE, ...)
 # Created: 			30-Mar-2014
 # Author:				Daniel Mastropietro
 # Description:	Evaluate using plot.binned() the model fit by selected input variables.
@@ -2542,7 +2542,7 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=2
 
 	# (2) Read the parameters explicitly passed by the user
   usrParams = as.list(match.call())
-  
+
 	# Create the final parameter list by sweeping over the parameters of the function signature and checking which of them
 	# were passed by the user.
 	# Create the initial list of parameters by removing the function name from usrParams
@@ -2554,6 +2554,9 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=2
 		}
 	}
 
+	# Type of plot (i.e. bubbles of points with error bars
+	type = match.arg(type)
+
 	# (3) Set the values of the final parameters to be passed to plot.binned()
 	# Assign y and pred
 	# NOTE the use of quote() --instead of using nothing or using substitute()-- because 'target' and 'score' are LOCAL variables
@@ -2562,15 +2565,26 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=2
 	paramsList$pred = quote(score)
 	# Remove parameters that are not used in the function call to plot.binned()
 	for (parm in c("dat", "legend", "score", "target", "vars")) paramsList[parm] = NULL
-	
+
 	# Set default values when not specified by the user
-	if (is.null(paramsList$ylab)) 			paramsList$ylab = "";
-	if (is.null(paramsList$col)) 				paramsList$col = "light blue";
-	if (is.null(paramsList$col.pred)) 	paramsList$col.pred = "red";
-	if (is.null(paramsList$col.lm)) 		paramsList$col.lm = "blue";
-	if (is.null(paramsList$col.loess)) 	paramsList$col.loess = "green";
+	if (is.null(paramsList$ylab)) 			paramsList$ylab = ""
+	if (is.null(paramsList$col.pred)) 	paramsList$col.pred = "red"
+	if (is.null(paramsList$col.lm)) 		paramsList$col.lm = "blue"
+	if (is.null(paramsList$col.loess)) 	paramsList$col.loess = "green"
 	if (is.null(paramsList$print)) 			paramsList$print = FALSE
-	
+	if (type == "bubbles") {
+		if (is.null(paramsList$col))			paramsList$col = "light blue"
+		if (is.null(paramsList$bands))		paramsList$bands = FALSE
+		if (is.null(paramsList$circles))	paramsList$circles = expression(x_n)
+	} else if (type == "both") {
+		if (is.null(paramsList$bands))		paramsList$bands = TRUE
+		if (is.null(paramsList$circles))	paramsList$circles = expression(x_n)
+	} else {
+		if (is.null(paramsList$col))			paramsList$col = "blue"
+		if (is.null(paramsList$bands))		paramsList$bands = TRUE
+		if (is.null(paramsList$width))		paramsList$width = 2
+	}	
+
 	# Store the value of paramsList$print on a local variable 'print' because I need it below
 	print = paramsList$print
 	#---------------------------- Parse input parameters -------------------------------
@@ -2590,7 +2604,35 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=2
 		paramsList$ylim = NULL
 		paramsList$print = print
 		do.call("plot.binned", paramsList)
-		if (legend) legend("top", legend=c("observed mean", "predicted mean", "lm fit", "loess fit"), pch=c(21,NA,NA,NA), lty=c(NA,1,2,1), lwd=c(NA,2,2,2), col=c("black", "red", "blue", "green"), pt.bg=c("light blue",NA,NA,NA), pt.cex=c(1.2,NA,NA,NA), cex=0.6)
+		if (legend) {
+			legend.text = c("observed mean", "predicted mean")
+			legend.pch = c(21, NA)
+			legend.lty = c(NA, 1)
+			legend.lwd = c(NA, 2)
+			legend.col = c("black", "red")
+			legend.pt.bg = c(paramsList$col, NA)
+			legend.pt.cex = c(1.2, NA)
+			if (is.null(paramsList$lm) || !is.null(paramsList$lm) && paramsList$lm) {
+				legend.text = c(legend.text, "lm fit")
+				legend.pch = c(legend.pch, NA)
+				legend.lty = c(legend.lty, 2)
+				legend.lwd = c(legend.lwd, 2)
+				legend.col = c(legend.col, "blue")
+				legend.pt.bg = c(legend.pt.bg, NA)
+				legend.pt.cex = c(legend.pt.cex, NA)
+			}
+			if (is.null(paramsList$loess) || !is.null(paramsList$loess) && paramsList$loess) {
+				legend.text = c(legend.text, "loess fit")
+				legend.pch = c(legend.pch, NA)
+				legend.lty = c(legend.lty, 1)
+				legend.lwd = c(legend.lwd, 2)
+				legend.col = c(legend.col, "green")
+				legend.pt.bg = c(legend.pt.bg, NA)
+				legend.pt.cex = c(legend.pt.cex, NA)
+			}
+			legend("top", legend=legend.text, pch=legend.pch, lty=legend.lty, lwd=legend.lwd,
+										col=legend.col, pt.bg=legend.pt.bg, pt.cex=legend.pt.cex, cex=0.6)
+		}
 
 		# RIGHT PLOT (y has the NEW scale of the y variable --after binning)
 		# This is what we plot below to the do.call() call to plot.binned():
@@ -2601,7 +2643,7 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=2
 		paramsList$print = FALSE	# The data were already printed at the previous call to plot.binned() when requested by the user... so do NOT print them again!
 		do.call("plot.binned", paramsList)	
 	}
-	
+
 	# Restore graphical settings
 	par(op)
 }
