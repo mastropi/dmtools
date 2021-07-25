@@ -997,7 +997,11 @@ plot.binned = function(
 	xtransform=NULL,	# transformation to apply to the x values. Either NULL, "", "orig" or "log" which applies the safe log function to the original values BEFORE grouping (this limits the influence of outliers)
 	center=mean, scale=sd, groups=20, breaks=NULL, rank=TRUE,
   lm=TRUE, loess=TRUE,
-  circles=NULL, thermometers=NULL,  # 'circles' and 'thermometers' must be EXPRESSIONS that parameterize the corresponding symbol based on the computed grouped values (e.g. circles=expression(x_n) or thermometers=expression(cbind(x_n,y_n,target_center)), since these values would not exist during the function call)
+  circles=NULL, thermometers=NULL, 
+  	# 'circles' and 'thermometers' must be EXPRESSIONS that parameterize the corresponding symbol based on the computed grouped values
+  	# (e.g. circles=expression(x_n) or thermometers=expression(cbind(x_n,y_n,target_center)), since these values would not exist during the function call)
+  	# 'thermometers' should be an expression that resolves to a matrix of 3 or 4 columns, where the first 2 columns contain variables that define the width and height of the thermometer
+  	# while the third and four columns are PROPORTIONS, defining how much the thermometer is filled.
   col="light blue", col.pred="black", col.target="red", col.lm="blue", col.loess="green",
 	pointlabels=TRUE, limits=FALSE,		# 'limits' indicates whether to show the x limits of each bin as vertical gray lines (so that we know from where to where each points spans in terms of the x values in the bin)
 	bands=FALSE, width=1, stdCenter=TRUE, # stdCenter: whether to show the bands using the standard deviation of the *summarized* y value (calculated as scale/sqrt(n), where n is the number of cases in the x category), instead of showing the standard deviation of the y value, i.e. +/- 'scale'.
@@ -1227,9 +1231,17 @@ plot.binned = function(
 
   #----------------------------------------- Fits --------------------------------------------#
 	# Linear fit (weighted by the number of cases in each group)
-	if (lm)     { lmfit = try( lm(y_center ~ x_center, weights=x_n, data=toplot) ) }
+	if (lm) {
+		lmfit = try( lm(y_center ~ x_center, weights=x_n, data=toplot) )
+	} else {
+		lmfit = NULL
+	}
 	# Loess fit (local regression, weighted by the number of cases in each group)
-	if (loess)  { loessfit = try( loess(y_center ~ x_center, weights=x_n, data=toplot) ) }
+	if (loess) {
+		loessfit = try( loess(y_center ~ x_center, weights=x_n, data=toplot) )
+	} else {
+		loessfit = NULL
+	}
   #----------------------------------------- Fits --------------------------------------------#
 
 
@@ -1357,12 +1369,14 @@ plot.binned = function(
           }
           symbols(x_center, y_center, thermometers=eval(thermometers), inches=inches, col="black", fg=fg, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
           # Add a text showing the target values
-          xpd = par(xpd=TRUE)
-          text(x_center, y_center, pos=4, offset=offset, label=as.character(signif(target_center,2)), cex=cex.label*log10(1 + x_n/10), col=rgb(r,g,0,1))
+          if (!is.null(target)) {
+	          xpd = par(xpd=TRUE)
+	          text(x_center, y_center, pos=4, offset=offset, label=as.character(signif(target_center,2)), cex=cex.label*log10(1 + x_n/10))
             ## use pos=4 because in the other text() function below I use pos=1 to add the values of the category sizes
-          par(xpd=xpd)
-          # Add information at the top regarding the overall average of target
-          mtext(paste("Target average:", signif(target_mean,2)), side=3, cex=0.8*cex.label)
+	          par(xpd=xpd)
+	          # Add information at the top regarding the overall average of target
+	          mtext(paste("Target average:", signif(target_mean,2)), side=3, cex=0.8*cex.label)
+	        }
         }
     }
     # Decide whether to add axis tick marks when this function is called from pairs()
@@ -1386,7 +1400,7 @@ plot.binned = function(
     	abline(v=x_min, col="gray", lty=2)
     }
     
-    if (lm & !inherits(lm, "try-error")) { lines(x_center, lmfit$fitted, col=col.lm,  lwd=2, lty=2) }
+    if (lm & !inherits(lmfit, "try-error")) { lines(x_center, lmfit$fitted, col=col.lm,  lwd=2, lty=2) }
     if (loess & !inherits(loessfit, "try-error")) { lines(x_center, loessfit$fitted, col=col.loess, lwd=2) }
     
     # If non-null, plot the fitted values (given in pred).
