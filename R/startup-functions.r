@@ -6,7 +6,6 @@
 # R version:    R-2.8.0 (used in SPSS 18.0.0 @NAT starting 2013)
 #
 
-
 # INDEX
 # AUXILIARY functions
 # DATA TRANSFORMATION functions
@@ -146,10 +145,9 @@ getAxisLimits = function(ext=0.04, xaxs=par("xaxs"), yaxs=par("yaxs"))
 	return(c(xlim, ylim))
 }
 
-# getBounds
-# Return the lower and upper bound of intervals of the type (x1,x2] or [x1,x2), etc. and also the brackets
-# (Inspired by the midpoints() function published on Matt's Stats around May-2014, which I have implemented
-# as function extract())
+#' Return the lower and upper bound of intervals of the type (x1,x2] or [x1,x2), etc. and also the brackets
+#' (Inspired by the midpoints() function published on Matt's Stats around May-2014, which I have implemented
+#' as function extract())
 getBounds <- function(x)
 {
 	x = as.character(x)
@@ -160,8 +158,7 @@ getBounds <- function(x)
 	return(list(lower=lower, upper=upper, left=left, right=right, opleft=opleft, opright=opright))
 }
 
-# getVarType
-# Return the type of a variable in a data frame (character or numeric)
+#' Return the type of a variable in a data frame (character or numeric)
 getVarType = function(x)
 {
 	# Check if the variable is factor otherwise, typeof() returns numeric!! (since factor levels are converted or stored as numbers)
@@ -1795,7 +1792,6 @@ plot.axis = function(x, y, xticks=NULL, xlabels=NULL, las=1, grid=TRUE, lty.grid
 #'
 # TODO: Fix this problem: the y2 values appear on the left vertical axis when plot1=plot and no x is given, even if I use quote(y)!
 plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=plot, plot1_options=list(), plot2_options=list(type="o", pch=21, col="red", bg="red", col.axis="red"), ...) {
-	#paramsList = getParamsList(match.call(), ...)
 	plot1.name = deparse(substitute(plot1))
 	plot2.name = deparse(substitute(plot2))
 
@@ -1803,7 +1799,7 @@ plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=p
 	# Set default plotting options
 	plot1_options_default = list()
 	plot1_options = setDefaultOptions(plot1_options, plot1_options_default)
-	plot2_options_default = list(type="o", pch=21, col="red", bg="red", col.axis="red")
+	plot2_options_default = list(type="o", pch=21, col="red", bg="red", col.axis="red", cex.axis=1, cex.lab=1)
 	plot2_options = setDefaultOptions(plot2_options, plot2_options_default)
 	# Secondary axis label
 	y2lab = plot2_options$ylab
@@ -1817,13 +1813,17 @@ plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=p
 	#---------- Parse input parameters
 
 	if (plot1.name == "barplot") {
-		# Generate the barplot and set the x values to be the x-axis position of the barplots
+		# Generate the barplot and set the x values to be the x-axis position of the bars
 		xaxs = "i"
-		x = do.call(plot1.name, c(list(x, xaxs=xaxs), plot1_options, ...))			# Use xaxs="i" (i.e. the x-axis spans just the data plotted, with no extension as is the case with default xaxs="s") so that the x-axis of the second plot matches the x-axis of the barplot!
+		x = do.call(plot1.name, c(list(x, xaxs=xaxs), plot1_options, ...))		
+			## Use xaxs="i" (i.e. the x-axis spans just the data plotted,
+			## with no extension as is the case with default xaxs="s")
+			## so that the x-axis of the second plot matches the x-axis of the barplot!
 		# Get the x-axis limits of the above plot so that they can be used on the second plot
 		xlim = getAxisLimits(xaxs=xaxs)[1:2]
 
-		# Define the x2 values as x if NULL was given (i.e. the plot on the secondary axis shares the same x-axis values as the plot on the primary axis)
+		# Define the x2 values as x if NULL was given
+		# (i.e. the plot on the secondary axis shares the same x-axis values as the plot on the primary axis)
 		if (is.null(x2)) {
 			x2 = x
 		}
@@ -1839,7 +1839,8 @@ plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=p
 
 		# Define the x and y values to plot on the secondary axis
 		if (is.null(y)) {
-			# This means that the primary plot is the plot of 'x' and the x-axis values are just indices (i.e. consecutive integers from 1 to length(x))
+			# This means that the primary plot is the plot of 'x'
+			# and the x-axis values are just indices (i.e. consecutive integers from 1 to length(x))
 			# => the plot on the secondary axis should still have those values as x-axis
 			x2 = 1:length(y2)
 		}
@@ -1853,10 +1854,10 @@ plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=p
 	if (!is.null(y2)) {
 		par(new=TRUE)
 		do.call(plot2.name, c(list(quote(x2), quote(y2), xlim=xlim, xaxs=xaxs, xaxt="n", yaxt="n", xlab="", ylab=""), plot2_options, ...))
-		axis(side=4, at=pretty(y), col=plot2_options$col, col.axis=plot2_options$col.axis)
+		axis(side=4, at=pretty(y), col=plot2_options$col, col.axis=plot2_options$col.axis, cex.axis=plot2_options$cex.axis)
 		# Add the label for the secondary axis
 		if (!is.null(y2lab)) {
-			mtext(side=4, text=y2lab, line=2, col=plot2_options$col.axis)
+			mtext(side=4, text=y2lab, line=2, col=plot2_options$col.axis, cex=plot2_options$cex.lab)
 		}
 	}
 	
