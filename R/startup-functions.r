@@ -722,6 +722,7 @@ logitInv = function(x, adjust=0)
 # plot.binned
 # plot.cdf		(NEW Mar-2014)
 # plot.dist
+# plot.errors (NEW Jul-2021)
 # plot.hist
 # plot.image
 # plot.log
@@ -826,7 +827,7 @@ panel.cor <- function(x, y, digits=2, prefix="", use="pairwise.complete.obs", ce
   r <- abs(cor(x, y, use=use))
   txt <- format(c(r, 0.123456789), digits=digits)[1]
   txt <- paste(prefix, txt, sep="")
-  if(missing(cex.cor)) cex <- 1/strwidth(txt)
+  if (missing(cex.cor)) cex <- 1/strwidth(txt)
   text(0.5, 0.5, txt, cex=cex*r)
 }
 
@@ -993,6 +994,45 @@ panel.image = function(x, y, col="red", nlevels=12, xaxt="s", yaxt="s", addXAxis
 # Created: 22-Jul-2014
 {
 	plot.image(x, y, col=col, nlevels=nlevels, xaxt=xaxt, yaxt=yaxt, addXAxis=addXAxis, addYAxis=addYAxis, add=TRUE, ...)
+}
+
+#' Plot data with vertical error bars
+#'
+#' @param x variable to plot on the X-axis.
+#' @param y variable to plot on the Y-axis.
+#' @param yerror variable defining the vertical error bars.
+#' @param col color to use for the points and error bars.
+#' @param ... additional options to pass to \code{plot}.
+plot.errors = function(x, y, yerror, col="blue", ...) {
+	# Created: 19-Jul-2021
+
+	#-- Parse input parameters
+	paramsList = getParamsList()
+
+	y_upper = y + yerror
+	y_lower = y - yerror
+
+	if (is.null(paramsList$extra$ylim)) {
+		# Set ylim so that the upper and lower bands fit in the graph
+		ylim = range(c(y, y_lower, y_upper), na.rm=TRUE)
+		# Update the paramsList accordingly
+		paramsList$all$ylim = ylim
+		paramsList$extra$ylim = ylim
+	}
+	#-- Parse input parameters
+
+	# Extend the y axis range so that the labels fit in the plot (specially this extension is necessary for the
+	# lower limit if pos=1 is used in the text() function below. If pos=3 is used, the upper limit should be extended)
+	# Note that in package grDevices there is also the function extendrange() but I am not using it here because
+	# I don't know if grDevices is included with the base installation of R.
+	#ylim[1] = ylim[1] - 0.1*(ylim[2] - ylim[1])
+	#ylim[2] = ylim[2] + 0.1*(ylim[2] - ylim[1])
+
+	# Plot y vs. x including the extra parameters (`...`)
+	do.call("plot", c(x=paramsList$fun$x, y=paramsList$fun$y, paramsList$extra))
+	points(x, y_upper, col=col, pch="_", lwd=4, lty=2)
+	points(x, y_lower, col=col, pch="_", lwd=4, lty=2)
+	segments(x, y_lower, x, y_upper, col=col, lwd=2)
 }
 
 # plot.binned: Binned plot
@@ -1598,12 +1638,13 @@ pairs.custom = function(x, lower.panel=panel.image, diag.panel=panel.dist, upper
   # The adjustment based on max.panels was obtained by trial and error.
   if (deparse(substitute(lower.panel)) == "plot.binned" | deparse(substitute(upper.panel)) == "plot.binned") {
 		## Note that the deparse(substitute()) function needs to be applied to the function parameters 'lower.panel' and 'upper.panel'
-		## and NOT to the elements of parmasList (paramsList$lower.panel and paramsList$upper.panel) because in the latter case
+		## and NOT to the elements of paramsList (paramsList$lower.panel and paramsList$upper.panel) because in the latter case
 		## the result is a complicated structure representing something like the function call and having the function name
 		## (e.g. "plot.binned") appearing at the end (as e.g. $plot.binned)
 		## The output of this can be seen by printing the output as a list as follows:
 		## print(as.list(deparse(substitute(paramsList$upper.panel))))
-		if (is.null(paramsList$cex)) paramsList$cex = 1/(max.panels^(1/3))
+		if (is.null(paramsList$cex.label)) paramsList$cex.label = 1/(max.panels^(1/3))
+	 	if (is.null(paramsList$circles)) paramsList$circles = expression(x_n)
 	 	if (is.null(paramsList$inches)) paramsList$inches = 0.5/(max.panels^(1/3))
 	 	if (is.null(paramsList$print)) paramsList$print = FALSE	# Do not show the plotted data of each pairs plot!
 		if (is.null(paramsList$addXAxis)) paramsList$addXAxis = FALSE
