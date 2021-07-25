@@ -171,26 +171,61 @@ getVarType = function(x)
 	return(vartype)
 }
 
-# getParamsList
-#' Return the parameter list of a function call, including optional parameters
+#' Return the parameter names and values of a function call, separated into
+#' explicitly-defined in the function, and additional or extra (...) parameters
 #'
-#' @param call function call from which the parameter list should be returned. This can be retrieved using match.call()
-#' from within the function whose parameter list is of interest.
-#' @param ... optional parameters passed to the function call of interest.
 #' @return a list containing two attributes:
 #' <ul>
-#' <li> a list with all parameters passed to the function.
-#' <li> a list with the optional parameters passed to the function (through ...), which is a subset of the 'all parameters' list.
+#' <li> \code{all}: a list with all parameters passed to the calling function.
+#' <li> \code{fun}: a list with the parameters explicitly defined by the calling function,
+#' whose values are those assigned by the function call or the default ones if
+#' the parameter is not part of the function call.
+#' <li> \code{extra}: a list with the extra parameters passed to the function, through \code{...}.
 #' </ul>
-getParamsList = function(call, ...) {
-  # Put all parameters into a parameter list (this includes the optional parameters)
-  paramsList = as.list(call)
-  # Get the optional parameters passed as ...
-  optionsList = list(...)
-  # Remove the function name from the all parameters list
-  paramsList[[1]] = NULL
+#'
+#' The list of the explicit parameters and the list of extra parameters are disjoint.
+getParamsList = function() {
+	funDefinition = sys.function(sys.parent())
+	funCall = sys.call(sys.parent())
+  call = match.call(definition=funDefinition,
+                    call=funCall,
+                    expand.dots=FALSE,
+                    envir=parent.frame(2))
 
-  return(list(allParams=paramsList, optionalParams=optionsList))
+  # Parameters explicitly defined by the signature of the function
+  # (note that this information is not used but was left here as a reference of how to parse the parameters explicitly defined in the function signature)
+  funParamsList = formals(funDefinition)
+
+  # Parameters included in the function call
+  # (this includes the explicitly defined and the extra parameters, which are identified separately.
+  # NOTE: in order to get the extra parameters identified, we need to use the object `call` as input to `as.list()`
+  # and NOT the `funCall` object computed above)
+  callParamsList = as.list(call)
+  # Remove the function name from the parameters list, because we don't need it and would make processes below more complicated
+  callParamsList[[1]] = NULL
+
+	# Go over all the parameters present in the function signature and check if they were passed by the user
+	# (so that we can assign the value passed)
+	funParamNames = names(funParamsList)
+	callParamNames = names(callParamsList)
+	# List of function parameters whose default value should be updated
+	funParamNamesPresentInCallParamNames = funParamNames[ !is.na( pmatch(funParamNames, callParamNames) )]
+	# Assign the value to the parameter given by the user in their function call
+	for (param in funParamNamesPresentInCallParamNames) {
+		funParamsList[param] = callParamsList[param]
+	}
+
+  # Get the extra parameters passed as ...
+  extraParamsList = funParamsList$...
+
+  # Remove the extra `...` parameters from the list of parameters defined by the function
+  # (since the parameters given in `...` are NOT defined by the function and we want to include
+  # in funParamsList only those parameters explicitly defined by the function)
+  funParamsList$... = NULL
+
+  return(list(all=c(funParamsList, extraParamsList),
+  						fun=funParamsList,
+  						extra=extraParamsList))
 }
 
 # pairsXAxisPosition 
