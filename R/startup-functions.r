@@ -1004,7 +1004,7 @@ plot.binned = function(
   	# while the third and four columns are PROPORTIONS, defining how much the thermometer is filled.
   col="light blue", col.pred="black", col.target="red", col.lm="blue", col.loess="green",
 	pointlabels=TRUE, limits=FALSE,		# 'limits' indicates whether to show the x limits of each bin as vertical gray lines (so that we know from where to where each points spans in terms of the x values in the bin)
-	bands=FALSE, width=1, stdCenter=TRUE, # stdCenter: whether to show the bands using the standard deviation of the *summarized* y value (calculated as scale/sqrt(n), where n is the number of cases in the x category), instead of showing the standard deviation of the y value, i.e. +/- 'scale'.
+	bands=FALSE, width=2, stdCenter=TRUE, # stdCenter: whether to show the bands using the standard deviation of the *summarized* y value (calculated as scale/sqrt(n), where n is the number of cases in the x category), instead of showing the standard deviation of the y value, i.e. +/- 'scale'.
   boxplots=FALSE, add=FALSE, offset=1, inches=0.5, size.min=0.05, cex.label=0.5,
 	xlab=NULL, ylab=NULL, xlim=NULL, ylim=NULL, ylim2=NULL,  # ylim for the secondary axis used to plot the target values
 	xlimProperty=xlim, ylimProperty=ylim, ylim2Property=ylim,
@@ -1343,8 +1343,8 @@ plot.binned = function(
       xlim = range(x_center)
     }
     if (is.null(circles) & is.null(thermometers)) {
-      # Plot circles by default whose size is defined by the number of cases in each categorized x point
-      symbols(x_center, y_center, circles=x_n, inches=inches, fg="black", bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
+      # Plot points
+      plot(x_center, y_center, pch=21, col="black", bg=col, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, xaxt=xaxt, yaxt=yaxt, ...)
     } else {
         if (!is.null(circles)) {
           # Plot circles whose size is defined by the variable passed by the user
