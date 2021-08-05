@@ -1,0 +1,7 @@
+*.project
+*.Rbuildignore
+*.Rproj
+*.Rproj.user
+*.Rhistory
+*.RData
+*.Ruserdata
