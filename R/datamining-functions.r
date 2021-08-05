@@ -70,7 +70,7 @@ GenerateCodeSPSS_WOEVariables = function(
 		stat="mean",					# Name of the column in WOETable containing the value representing each bin
 		woeprefix="woe_",			# Prefix to use for the WOE variables
 		woesuffix="",					# Suffix to use for the WOE variables
-		woevartype="linear")	# Method to create the WOE variables. Accepted values are: "constant" for piecewise constant mapping or "linear" for piecewise linear interpolation between bin centers. 
+		woevartype="linear")	# Method to create the WOE variables. Accepted values are: "constant" for piecewise constant mapping or "linear" for piecewise linear interpolation between bin centers.
 {
 	#----------------------------- Parse input parameters ---------------------------------------
 	### WOEVARTYPE
@@ -92,8 +92,8 @@ GenerateCodeSPSS_WOEVariables = function(
 	if (bLinear) {
 		# Get the values representing each bin (usually the bin center such as the mean)
 		xvalues = WOETable[,stat]
-		# Compute the slopes for the linear interpolation between consecutive bins 
-		woeslopes = diff(WOETable$woe) / diff(xvalues)	# Note that diff(xvalues) should NEVER be 0, as the xvalues should always be different (by construction of the equal size binning) 
+		# Compute the slopes for the linear interpolation between consecutive bins
+		woeslopes = diff(WOETable$woe) / diff(xvalues)	# Note that diff(xvalues) should NEVER be 0, as the xvalues should always be different (by construction of the equal size binning)
 	}
 
 	# Loop over all the bins
@@ -180,14 +180,14 @@ GenerateCodeSPSS_WOEVariables = function(
 							#----------------------------- MIDDLE BIN ----------------------------------
 							if (bLinear) {
 								# Assign the value to the new WOE variable resulting from a linear interpolation between the current bin value (xvalues[i]) and the next bin value (xvalues[i+1])
-								# (note that xvalues[i+1] always exist because we are sure that we are NOT at the last bin)    
+								# (note that xvalues[i+1] always exist because we are sure that we are NOT at the last bin)
 								# Intervals are always open to the left and close to the right, regardless of the bin boundaries (whether open or closed)
 								expr = paste("if (", xvalues[i], "<", vname, " and ", vname, "<=", xvalues[i+1], ")", newvname, "=", WOETable$woe[i], "+", woeslopes[i], "* (", vname, "-", xvalues[i], ").")
 							} else {
 								# Assign the WOE variable to the whole bin.
 								# Both lower and upper bound are used on the condition on the input variable.
 								expr = paste("if (", bounds$lower, bounds$opleft, vname, " and ", vname, bounds$opright, bounds$upper, ")", newvname, "=", WOETable$woe[i], ".")
-							}								
+							}
 						} # (6)
 					} # (5)
 				} # (3)
@@ -238,11 +238,11 @@ GroupAndAssignCategories = function(
 		cex.names=0.6				# Character expansion factor for the names (values of categorical variable) of the barplot
 	) {
 
-	# Parse input parameters 
+	# Parse input parameters
 	vars = parseVariables(vars)
 	varsNotFound = checkVariables(dat, c(vars, target))
 	stopifnot(!is.null(target) && length(target) == 1 && length(varsNotFound) == 0)
-	
+
 	if (is.null(dat4assign)) dat4assign = dat
 
 	# New variables to create (they are stored in a data frame which are appended to the input dataset at the end
@@ -337,12 +337,12 @@ GroupAndAssignCategories = function(
 ######################################## GroupCategories ######################################
 # 2014/03/26
 # [DONE-2014/03/28] UNDER DEVELOPMENT: The code below works but needs to be setup as a function. It was tested in the Moni project.
-# The goal of this function is to automatically group contiguous categories of categorical variables when they are sorted by 
+# The goal of this function is to automatically group contiguous categories of categorical variables when they are sorted by
 # the value of a target variable based on Chi-Square or t tests of 2x2 contingency tables formed by x
 # (the categorical variable under analysis) and y (the target variable of interest, usually binary variable)
 # The user should have the option of specifying particular categories that they want to leave alone (i.e. do not group with others)
 # There is also a threshold of the number of cases (and percent of cases) that a category should have NOT to be grouped.
-# Too small of categories should be placed together with the MEAN group (i.e. with the group having average target value) or 
+# Too small of categories should be placed together with the MEAN group (i.e. with the group having average target value) or
 # with a separate group called e.g. "Z-REST".
 # Ref: Moni project -> 2 Modeling.r
 #
@@ -419,11 +419,11 @@ GroupCategories = function(
 			se = std * sqrt(1/n1 + 1/n2)
 			df = n1 + n2 - 2
 			pvalue = 1 - pt((mu1 - mu2)/se, df)
-		} 
-		
+		}
+
 		return(pvalue)
 	}
-	
+
 	# Collapse contiguous groups
 	fxCollapseGroups = function(x, type)
 	# Input: x: a matrix with 2 rows and the columns to update after collapsing
@@ -432,7 +432,7 @@ GroupCategories = function(
 	{
 		# Initialize the output of the function
 		xout = array(NA, dim=ncol(x)); dimnames(xout) = list(colnames(x))		# dimnames of an array should be defined as a a list...(!)
-		
+
 		if (type == "cat") {
 			# Sum vertically
 			xout = apply(x, 2, FUN=sum)
@@ -453,7 +453,7 @@ GroupCategories = function(
 
 	# Plot the updated bar plot. I define it as a function because it is called twice from the main function
 	fxPlot = function(x, type)
-	# Input: x: a matrix where the row names are the different x categories to plot and 
+	# Input: x: a matrix where the row names are the different x categories to plot and
 	# 			 type: the type of the target variable defining how to compute the height of the bars to plot:
 	#						when "cat": height = proportion of events (categorical target)
 	#						o.w.: representative value of the target in each category (e.g. mean) (contintuous target)
@@ -486,7 +486,7 @@ GroupCategories = function(
 
 
 	#---------------------- Initial bar plot and threshold definition ---------------------------
-	# Compute and plot (if requested) the barplot that represents the average target variable vs. the categorical variable 
+	# Compute and plot (if requested) the barplot that represents the average target variable vs. the categorical variable
 	if (type == "cat") {
 		FUN = "table"
 		if (missing(pthr)) pthr = 0.50
@@ -576,7 +576,7 @@ GroupCategories = function(
 	} else {
 		cat("Categories with too few cases (n <", nthr, ") are merged to the category to the LEFT.\n")
 	}
-	
+
 	# Initialize arrays needed for the process
 	categories = rownames(xout)							# Store the original x categories
 	groups = array(NA, dim=nrow(bars))			# There will be at most as many merged groups as the nro. of categories in the original x variable.
@@ -594,7 +594,7 @@ GroupCategories = function(
 	# which during the process is temporarily store in variable 'ogroups'
 	xother = array(0, dim=ncol(xout)); dimnames(xother) = list(colnames(xout))		# dimnames of an array are defined as a list...(!)
 	ogroups = NULL		# Variable to temporarily store the list of categories that fall into the new group "other"
-	
+
 	### Start looping on the rows of the matrix of new groups 'xout'
 	while (j < nrow(xout)) {
 		# Left and right x categories being compared
@@ -623,10 +623,10 @@ GroupCategories = function(
     # Evaluate what conditions are satisfied for grouping
     # (either p-value is too large or ncases.left or ncases.right is too small when parameter othergroup = TRUE)
     cond.pvalue = as.logical(min(pvalues[i] >= pthr, TRUE, na.rm=TRUE)); asterisk.pvalue = ifelse(cond.pvalue, "*", "")
-    	## The min() function to compute cond.pvalue is used to avoid problems when cond.pvalue is NA (which happens rarely when the chisq.test() above fails) 
+    	## The min() function to compute cond.pvalue is used to avoid problems when cond.pvalue is NA (which happens rarely when the chisq.test() above fails)
     cond.ncases = ncases.left < nthr | ncases.right < nthr; asterisk.ncases = ifelse(cond.ncases, "*", "")
-    cond.exclusion.left  = categories[ileft]  %in% exclusions 
-    cond.exclusion.right = categories[iright] %in% exclusions 
+    cond.exclusion.left  = categories[ileft]  %in% exclusions
+    cond.exclusion.right = categories[iright] %in% exclusions
 
 		if (print) {
 			catstr = paste("Comparing x categories", ileft, "and", iright, ":")
@@ -637,7 +637,7 @@ GroupCategories = function(
 		# MERGE OR NOT MERGE?
 		if ((cond.pvalue | cond.ncases) & !(cond.exclusion.left | cond.exclusion.right)) {
 			# Entering here means that the RIGHT category of x (iright) should be merged into a new group,
-			# either to the "other" group or to the LEFT category of x being analyzed (ileft). 
+			# either to the "other" group or to the LEFT category of x being analyzed (ileft).
 			if (othergroup & cond.ncases) {
 				#----------------------- SEND CATEGORIES TO THE "OTHER" GROUP -------------------------
 				# Add the category/ies containing a small number of cases to xother and update the string 'ogroups'
@@ -645,7 +645,7 @@ GroupCategories = function(
 				ind2remove = NULL
 				if (ncases.left < nthr) {
 					if (print) cat("\n", tabstr, "--> LEFT category sent to OTHER group because size <", nthr, ":", rownames(xout)[j])
-					# Collapse the LEFT category/group to the "other" group 
+					# Collapse the LEFT category/group to the "other" group
 					xother = fxCollapseGroups(rbind(xother, xout[j,]), type)
 					ogroups = paste(ogroups, groups[j], sep=", ")
 					# Add row j to the vector of row indices to be removed from xout
@@ -660,7 +660,7 @@ GroupCategories = function(
 				}
 				if (ncases.right < nthr) {
 					if (print) cat("\n", tabstr, "--> RIGHT category sent to OTHER group because size <", nthr, ":", rownames(xout)[j+1])
-					# Collapse the RIGHT category/group to the "other" group 
+					# Collapse the RIGHT category/group to the "other" group
 					xother = fxCollapseGroups(rbind(xother, xout[j+1,]), type)
 					ogroups = paste(ogroups, groups[j+1], sep=", ")
 					# Add row j+1 to the vector of row indices to be removed from xout
@@ -733,7 +733,7 @@ GroupCategories = function(
 					# (this section is a copy of the first 3 statements of the section above where the left category is sent to the "other" group)
 					# (the last 4 statements are not needed here)
 					if (print) cat("\n", tabstr, "--> LEFT category sent to OTHER group because size <", nthr, ":", rownames(xout)[j], "\n")
-					# Collapse the LEFT category/group to the "other" group 
+					# Collapse the LEFT category/group to the "other" group
 					xother = fxCollapseGroups(rbind(xother, xout[j,]), type)
 					ogroups = paste(ogroups, groups[j], sep=", ")
 					# Remove the j row of xout since it was just sent to the "other" group and update groups[j] with groups[j+1]
@@ -809,8 +809,8 @@ GroupCategories = function(
 			# Only cond.ncases (on the last category) is computed here because cond.pvalue cannot be TRUE at this last category
 			cond.ncases = ncases < nthr; asterisk.ncases = ifelse(cond.ncases, "*", "")
 			# Check if any of the two last groups are in the exclusions list
-	    cond.exclusion.left  = categories[ileft]  %in% exclusions 
-	    cond.exclusion.right = categories[iright] %in% exclusions 
+	    cond.exclusion.left  = categories[ileft]  %in% exclusions
+	    cond.exclusion.right = categories[iright] %in% exclusions
 			if (cond.ncases & !(cond.exclusion.left | cond.exclusion.right)) {
 				groups[jlast-1] = paste(groups[jlast-1], groups[jlast], sep=", ")
 				# Collapse rows jlast-1 and jlast
@@ -880,7 +880,7 @@ GroupCategories = function(
 		# Update xout
 		xout[j,ncols+1:length(ind)] = pvalues[ind]
 	}
-	# Keep only the columns with non-missing pvalues 
+	# Keep only the columns with non-missing pvalues
 	xout = xout[,1:(ncols+indmax),drop=FALSE]
   	## Note the use of drop=FALSE so that xout is still a matrix even when it has only one row.
 
@@ -945,7 +945,7 @@ AssignCategories = function(dat, vars, newvars, newvalues, groupedCat)
 	# Check if the variables passed were passed as arrays (length>1) or strings (length=1)
 	if (length(vars) == 1) { vars = parseVariables(vars) }
 	if (length(newvars) == 1) { newvars = parseVariables(newvars) }
-	
+
 	i = 0
 	for (v in vars) {
 		i = i + 1
@@ -1006,15 +1006,15 @@ AssignCategories = function(dat, vars, newvars, newvalues, groupedCat)
 # View(D)
 # # Define the breaks given by the x values where assigned group g changes
 # breaks = D$x[which(abs(D$b)==1)]
-# 
+#
 # h = hist(x, plot=FALSE)
 # h2 = hist(x, breaks=c(min(x), breaks, max(x)), plot=FALSE)
 # View(cbind(breaks=c(min(x), breaks), mid=h2$mids, dens=h2$density, freq=h2$counts))
-# 
+#
 # par(mar=c(5,5,4,5))
 # ylim = range(c(h$density, h2$density))*1.1
 # plot(h, freq=FALSE, col=rgb(1,0,0,0.2), ylim=ylim)
-# lines(D, col="red") 
+# lines(D, col="red")
 # plot(h2, add=TRUE, freq=FALSE, labels=as.character(h2$counts), cex=0.5, col=rgb(0,1,0,0.1))
 #
 # - 2013/08/02: Give the user the possibility of plotting the NUMBER OF CASES on the vertical axis instead of the percent frequency.
@@ -1089,7 +1089,7 @@ Profiles <- DistributionsByGroup <- function(
 #
 {
 
-  
+
 #----- DEFINE AUXILIARY FUNCTIONS -----#
 # Computation of histogram
 histogram = function(x, density, method="density") {
@@ -1122,7 +1122,7 @@ histogram = function(x, density, method="density") {
 	  if (tolower(method) != "sturges" & length(hist$breaks) < 5)
       hist = hist(x, breaks="Sturges", plot=FALSE)
 	}
-	
+
 	return(hist)
 }
 
@@ -1173,7 +1173,7 @@ initializePlot = function(objplot) {
 }
 #----- DEFINE AUXILIARY FUNCTIONS -----#
 
-  
+
 #----- DEFINE CONSTANTS ------#
 # Valid transformations to apply to the analyzed variables
 VALIDTRANSFORMS = c(".", "LOG", "SAFELOG")
@@ -1243,7 +1243,7 @@ if (!is.null(stats) && stats != "") {
   stats = parseVariables(stats)
   nstats = length(stats)
   statFuns = stats
-  statValues = rep(0,nstats) # Set a non-NA value to statValues[s] as default value. 
+  statValues = rep(0,nstats) # Set a non-NA value to statValues[s] as default value.
   # This value is updated when the statistic is a quantile and it does NOT affect the result of normal statistics (e.g. mean, median, etc.).
   # Identify the statistic function (when quantiles are passed on the form "q<N>")
   for (s in 1:nstats)
@@ -1339,7 +1339,7 @@ if (nvars > 3)
 #spaceLegend = max(nchar(gvar), max(sapply(groupvaluesLegend,nchar)) + 4 + (floor(log10(nobs))+1) + 4)
 	## First '+4' is used to leave space for the lines shown in the legend representing each group
 	## floor(log10(...)) is used to leave space for the group sizes (nobs is the number of observations in the dataset to plot)
-	## Second '+4' is used to leave space for the string added to the group sizes (like "(n=....)") 
+	## Second '+4' is used to leave space for the string added to the group sizes (like "(n=....)")
 #par(mfrow=c(nrows,ncols), mar=c(6,5,0.5,1), oma=c(0,0,4,spaceLegend), ps=18)
 # Use this when the legend is placed at one of the corners of the graph (see end of code for the legend placement)
 #spaceLegend = 0
@@ -1392,7 +1392,7 @@ if (is.null(colors) || max(toupper(colors) == "_AUTO_")) {      # Use the max() 
 			colors = colorpalette[indmatch]
 		# Complete the colors with rainbow colors when less colors are specified than number of groups in the data
 		if (length(colors) < ngroupvalues)
-		    colors = c(colors, rainbow(ngroupvalues-length(colors)))     # Note that this does NOT take into account the problem of having the same color for 2 groups when the user specifies a color given by rainbow()) 
+		    colors = c(colors, rainbow(ngroupvalues-length(colors)))     # Note that this does NOT take into account the problem of having the same color for 2 groups when the user specifies a color given by rainbow())
 	}
 }
 # Create RGB colors from color names to be used when generating overlapping histograms with added transparency
@@ -1547,7 +1547,7 @@ print(hist$breaks)
 	print(vlim)
     # Variable name label
 	xlab = paste(vars[i], transformLabel(transforms[i]))  # The call to transformLabel adds text stating the transformation used, if any
-	
+
     #-- Define the tick marks
     # There are 2 methods to define the tick marks ("at" values) so that the values shown are "pretty":
     # (M1) Define first the LABELS (based on the original scale => labels=pretty(range(xorig))) and then the POSITIONS ("at", based on those labels => at=transform(labels, transforms[i])
@@ -1590,7 +1590,7 @@ print(hist$breaks)
         xaxt = "s"  # This is the default value of xaxt which means "square" (I think)
     }
 	}
-	
+
   #-- Initialize the plots (one for each group when alltogetherGroups=False)
   objplot = new("list")
   objplot$x = x
@@ -1629,7 +1629,7 @@ print(hist$breaks)
   } else {
       initializePlot(objplot)
   }
-	
+
 	### 2.- Iterate on the different values taken by the GROUP variable and for each of them add a histogram/density on the current plot
 	size = numeric(0)
 	legend = character(0)
@@ -1693,7 +1693,7 @@ print(hist$breaks)
           } else {
             # Show the values of the statistics in the original scale
             labels = paste(stats[s],"=", formatC(densList[[g+1]]$stats[s], format="g", digits=2), sep="")
-          }            
+          }
           if (!alltogetherGroups) {
             if (!is.null(labelOrientation)) {
               las = labelOrientation
@@ -1770,7 +1770,7 @@ if (save) {
 
 ######################################## InformationValue #####################################
 # 2013/07/25
-# Description: Information Value for categorical and continuous variables on a binary variable
+# Description: Information Value for categorical and continuous variables on a binary or continuous variable
 # Application: Variable screening for a predictive model
 #
 # HISTORY: (2013/08/08)
@@ -1832,7 +1832,7 @@ if (save) {
 # 4    (6,7]  688   292
 # 5    (7,8]    0     2
 # I THINK THIS IS EASILY SOLVED BY CHECKING THE NUMBER OF COLUMNS IN THE TRANSPOSED DATA FRAME AND THEN USING THE strsplit() function to convert the e.g. "6, 8" into "6", "8"
-# and the "1" into "1", "0" on the first row of the above example; and the 
+# and the "1" into "1", "0" on the first row of the above example; and the
 # - 2014/01/03: Add a weight parameter to compute a weighted Information Value. This need came about during the fit of the NBC model
 # 							for 2014 where we used weights to take into account the rejected applications and the different number of applications
 #								received over the months.
@@ -1854,46 +1854,91 @@ if (save) {
 # TESTS TO PERFORM ON THIS FUNCTION (when writing the package and using function test_that())
 # - All missing values: IV of categorical/continuous variable having all NA/NaN values
 # - Weird Target: IV when target takes exactly one value
+
+#' Compute the Information Value for a binary or continuous target variable
+#'
+#' @param data data frame to analyze containing the variables to analyze
+#' given in \code{target}, \code{vars}, \code{varclass}, and/or \code{varnum}.
+#' @param target target variable to analyze. Either binary or continuous (expanding any range of values).
+#' @param vars string or array of continuous variables to analyze.
+#' @param varclass string or array of categorical variables to analyze.
+#' @param varnum string or array of continuous variables to analyze. These variables are combined with those
+#' specified in \code{vars} to make up the whole list of continuous variables to analyze.
+#' @param groups number of equal-sized bins to consider for the continuous variables (as long as the data allows it).
+#' @param breaks array defining the upper boundaries of the bins into which ALL CONTINUOUS variables are binned
+#' @param stat name of the statistic to use on each bin to compute a representative value for the analyzed continuous variables.
+#' @param event event of interest ("FIRST" or "LAST", representing the first and last level of a binary target, respectively)
+#' which is used as numerator in the WOE formula.
+#' @param spsscode whether to include the SPSS code that can be used to create WOE variables as part of the output.
+#' @param woeprefix prefix to use for the WOE variable names.
+#' @param woesuffix suffix to use for the WOE variable names.
+#' @param woevartype method for the creation of the WOE variables in the SPSS code.
+#' Accepted values are: "constant" for piecewise constant mapping or "linear" for piecewise linear interpolation between bin centers.
+#'
+#' @return a list with the following elements:
+#' \itemize{
+#' \item{\code{WOE}} data frame with the Weight-Of-Evidence per bin on the target for each analyzed variable.
+#' \item{\code{IV}} data frame with the Information Value on the target for each analyzed variable.
+#' An adjusted information value is computed as \code{IV * log(groups) / log(nlevels)}, where \code{nlevels}
+#' is the column in the data frame containing the number of levels of the analyzed variable.
+#' The goal of this adjustment is to provide a fairer comparison of variables with fewer number of levels
+#' and variables with more number of levels, as the latter would tend to have a larger IV just because they
+#' have more levels.
+#' \item{\code{SPSS}} array containing the lines of SPSS code that generates a WOE variable for each analyzed variable
+#' based on the variable's bins and their WOE.
+#' Use \code{cat(SPSS, sep="\n")} to obtain the lines of code as a string to copy & paste.
+#' }
+#'
+#' @examples
+#' iv = InformationValue(
+#'   tofit,
+#'   "B_TARGET",
+#'   varclass="
+#' I_CLI_CANAL
+#' I_CLI_TYPE
+#' ",
+#'   varnum="
+#' N_EQX_EDAD V_EQX_SALARIO
+#' ",
+#'   stat="median",
+#'   spsscode=TRUE
+#' )
+#' # Show the generated SPSS code for the WOE variables calculation as a string
+#' cat(iv$SPSS, sep="\n")
 InformationValue = function(
-  data,             		# Dataset containing the variables to analyze listed in 'vars', 'varclass' and/or 'varnum
-  target,           		# Either an unquoted variable name or a string indicating the name of the binary target variable in 'data' on which the Information Value is computed
-  vars=NULL,        		# Blank- or line-separated string with the names of the variables to analyze (they are assumed to be continuous)
-  varclass=NULL,    		# Blank- or line-separated string with the names of the CATEGORICAL variables to analyze
-  varnum=NULL,      		# Blank- or line-separated string with the names of the CONTINUOUS  variables to analyze (these variables together with those specified in VARS determine the continuous variables to analyze)
-  groups=20,        		# Number of groups into which the continuous variables are binned (equal-size bins)
-  breaks=NULL,      		# Vector defining the upper boundaries of the bins into which ALL CONTINUOUS variables are binned
-  stat="mean",      		# Statistic to compute on each bin of the analyzed continuous variables
-  event="LAST",     		# Event of interest ("FIRST" or "LAST") which is used as numerator in the WOE formula
-  spsscode=FALSE,				# Whether to include the SPSS code to create WOE variables as part of the output
-	woeprefix="woe_",			# Prefix to use for the WOE variables
-	woesuffix="",					# Suffix to use for the WOE variables
-	woevartype="linear")	# Method to create the WOE variables. Accepted values are: "constant" for piecewise constant mapping or "linear" for piecewise linear interpolation between bin centers. 
-  # Created: 2013/07/25
-  # Modified: 2013/07/25
-  # Descrtiption: Information Value for continuous and categorical variables on a binary target
-  # Example:
-  # iv = InformationValue(
-  #   tofit,
-  #   "B_TARGET",
-  #   varclass="I_CLI_CANAL I_CLI_TYPE".,
-  #   varnum="N_EQX_EDAD V_EQX_SALARIO")
+  data,
+  target,
+  vars=NULL,
+  varclass=NULL,
+  varnum=NULL,
+  groups=20,
+  breaks=NULL,
+  stat="mean",
+  event="LAST",
+  spsscode=FALSE,
+	woeprefix="woe_",
+	woesuffix="",
+	woevartype="linear")
 {
-  
+  # Created: 2013/07/25
+
 	#----- DEFINE AUXILIARY FUNCTIONS -----#
 	iv = function(y, group, x=NULL, event="LAST", stat="mean")
 	{
 		# Parameters:
-		# y:      target variable on which the Information Value of x is computed
-		# group:  group variable defining the different categories of x used to compute the Information Value
-		# x:      continuous variable for which the Information Value is computed (set it to NULL when x is categorical)
+		# y:      target variable on which the Information Value of x is computed.
+		# group:  group variable defining the different categories of x used to compute the Information Value.
+		# x:      continuous variable for which the Information Value is computed (set it to NULL when x is categorical).
 		# event:  defines the event of interest for the WOE computation.
 		#         Either the "FIRST" or the "LAST" ordered value out of the two values taken by variable 'y'
-		#         is used at the numerator of the WOE formula: WOE = log(#Class1/#Class2)
-		#         When event = "LAST", Class1 is the LARGEST of the values
-		#         Otherwise, Class1 is the SMALLEST of the values
-		# Output: A data frame containing the following columns:
+		#         is used at the numerator of the WOE formula: WOE = log(#Class1/#Class2).
+		#         When event = "LAST", Class1 is the LARGEST of the values.
+		#         Otherwise, Class1 is the SMALLEST of the values.
+	  # stat:   name of the function FUN to use as statistic for the computation of the representative x value for each group.
+	  # Output: A data frame containing the following columns:
 		#         - group:  distinct categories of x used to compute the Information Value on y
-		#         - stat:   statistic value for each category when x is continuous or NA when x is NULL (meaning that the variable on which the Information Value is computed is categorical)
+		#         - stat:   statistic value for each category when x is continuous or NA when x is NULL
+	  #                   (meaning that the variable on which the Information Value is computed is categorical)
 		#         - woe:    Weight of Evidence for each category of x on y
 		#         - iv:     contribution to the total Information Value by the corresponding category of x.
 		#
@@ -1924,11 +1969,11 @@ InformationValue = function(
 		# (Note that NA and NaN values in 'y' are removed with function is.na())
 		indok = !is.na(y)
 		y.count = aggregate(y[indok], by=list(y[indok],group[indok]), FUN=length)
-		y.count$newcol = y.levels[as.character(y.count$Group.1),] 
+		y.count$newcol = y.levels[as.character(y.count$Group.1),]
 			## It is important the user of as.character() to correctly index the rows of the data frame y.levels!
 
 		# Transpose by group value: I create a new data frame where the row names contain the values taken by the group value
-		# NOTE: I could have used the reshape() function to do this, which ALSO takes care of unexisting levels of the 
+		# NOTE: I could have used the reshape() function to do this, which ALSO takes care of unexisting levels of the
 		# target variable for some group values (unlike the t() transpose operator, whose result is explained below)
 		y.count.t = data.frame(row.names=levels(group), x.1=rep(0,nlevels(group)), x.2=rep(0,nlevels(group)))
 		# Transpose y.count by Group.2 to get y.count.t
@@ -1941,7 +1986,7 @@ InformationValue = function(
 		# - When one of the levels of the 'y' variable is NOT present for one value of Group.2, the output has only 1 column instead of 2!
 		# (and this is not what we want!)
 		# - The transpose operator is NOT valid in R versions prior to R-2.11 as FUN can only return a scalar!!
-		# (see help(aggregate)) => this process does not work in R for SPSS 18.0.0 which requires R-2.8.0 to function.    
+		# (see help(aggregate)) => this process does not work in R for SPSS 18.0.0 which requires R-2.8.0 to function.
 		#y.count.t = aggregate(y.count$x, by=list(y.count$Group.2), FUN="t")
 		## NOTE that the result stored in y.count.t using the aggregate() function is a #groups x 2 data frame
 		## where the first column (named Group.1 --despite aggregating by Group.2 above)
@@ -1975,8 +2020,65 @@ InformationValue = function(
 		output = data.frame(group=rownames(y.count.t), stat=signif(x.stat, digits=4), nobs=count.class1+count.class2, pctClassFIRST=signif(count.classFIRST/(count.classFIRST+count.classLAST)*100, digits=3), pctClassLAST=signif(count.classLAST/(count.classFIRST+count.classLAST)*100, digits=3), woe=signif(woe, digits=4), iv=signif(iv, digits=4))
 		return(output)
 	}
-	#----- DEFINE AUXILIARY FUNCTIONS -----#  
-  
+
+	# Information value for non-negative continuous target variables
+	# It is based on the target value distribution over the groups of the input variable,
+	# obtained by summing the target values in each group and dividing by its total.
+	# This distribution is compared to the distribution of the observations over the groups.
+	# Ref: https://www.listendata.com/2019/08/WOE-IV-Continuous-Dependent.html
+	iv.cont = function(y, group, x=NULL, stat="mean")
+	{
+	  # Parameters:
+	  # y:      target variable on which the Information Value of x is computed.
+	  # group:  group variable defining the different categories of x used to compute the Information Value.
+	  # x:      continuous variable for which the Information Value is computed (set it to NULL when x is categorical).
+	  # stat:   name of the function FUN to use as statistic for the computation of the representative x value for each group.
+	  # Output: A data frame containing the following columns:
+	  #         - group:  distinct categories of x used to compute the Information Value on y
+	  #         - stat:   statistic value for each category when x is continuous or NA when x is NULL
+	  #                   (meaning that the variable on which the Information Value is computed is categorical)
+	  #         - woe:    Weight of Evidence for each category of x on y
+	  #         - iv:     contribution to the total Information Value by the corresponding category of x.
+	  #
+
+	  #---------------------- Parse input parameters -------------------------
+	  ### GROUP
+	  # Just in case, eliminate not-observed levels of the factor variable GROUP (this is done by applying the factor() function to the variable)
+	  group = factor(group)
+	  #---------------------- Parse input parameters -------------------------
+
+	  # Sum the values of Y on each group
+	  # (Note that NA and NaN values in 'y' are removed with function is.na())
+	  indok = !is.na(y)
+
+	  # Shift the values of y to its minimum value so that all analyzed values are non-negative
+	  # (which is required for this definition of IV to work)
+	  z = y[indok] - min(y[indok])
+	  z.count = aggregate(z[indok], by=list(group[indok]), FUN=length)
+	  z.sum = aggregate(z[indok], by=list(group[indok]), FUN=sum)
+	    ## The columns of the output of aggregate are "Group.1" with the group values and "x" with the sum of the target values (z.sum)
+	  # Distribution of the SUMS of y over all groups
+	  z.sum.dist = z.sum[,"x"] / sum(z.sum[,"x"])
+	  # Distribution of the COUNTS of y over all groups (i.e. number of valid Y cases in each group)
+	  z.count.dist = z.count[,"x"] / sum(z.count[,"x"])
+
+	  # Statistic value given in 'stat' for x on each group value
+	  if (!is.null(x)) {
+	    x.stat = aggregate(x, by=list(group), FUN=stat)
+	    x.stat = x.stat$x
+	  } else {
+	    x.stat = NA
+	  }
+	  # WOE and IV contribution for each group value
+	  # Note that the IV is like a target-weighted ENTROPY!
+	  woe = ifelse(z.sum.dist==0, NA, log(z.sum.dist / z.count.dist))  # The minus sign is to make the WOE positive
+	  iv = ifelse(z.sum.dist==0, 0, (z.sum.dist - z.count.dist) * woe)
+
+	  output = data.frame(group=z.sum[,"Group.1"], stat=signif(x.stat, digits=4), nobs=z.count[,"x"], nobs.dist=signif(z.count.dist, digits=4), y.dist=signif(z.sum.dist, digits=4), woe=signif(woe, digits=4), iv=signif(iv, digits=4))
+	  return(output)
+	}
+	#----- DEFINE AUXILIARY FUNCTIONS -----#
+
   #------------------------------- Parse input parameters -------------------------------------
   ### TARGET
   # Make a local copy of the target variable and compute its distinct values (there should be EXACTLY 2 values)
@@ -1986,7 +2088,7 @@ InformationValue = function(
   # or
   # table(get(target))
   # Check whether parameter 'target' contains a string with a variable name or an actual variable
-  if (is.character(target) & length(target)==1) {
+  if (is.character(target) && length(target)==1) {
     # A string was passed containing the name of the target variable in 'data'
     targetname = target
     if (target %in% colnames(data)) {
@@ -2003,15 +2105,16 @@ InformationValue = function(
   values = tab[,1]          # The first column of 'tab' contains the values taken by the target variable (note that 'values' is a FACTOR variable)
   values = factor(values)   # Just in case, remove any non-occurring value of target
   nlevels = nlevels(values)
-  if (!nlevels %in% c(1, 2)) {
-    # Note: deparse(substitute(target)) returns the variable name (instead of its value) passed in 'target'!
-    stop("The target variable '", targetname, "' must take at least 1 and at most 2 distinct values but it takes the following values:\n", toString(values))	# toString() returns e.g. "0, 1" if values = c(0,1)
-  } else {
-		# Compute the total target penetration
+  if (nlevels %in% c(1, 2)) {
+		# The target is binary
+    # => Set the flag that the target is binary and compute the total target penetration by class
 		# (this is used when a continuous variable has all missing values (NA or NaN) to inform this number in the output IV and WOE tables)
 		# NOTE: when # distinct values = 1, we assume that the value that does NOT appear is the "LAST" one (recall that input parameter event="LAST" by default)
-		pctClassFIRST_total = tab[1,2] / sum(tab[,2]) * 100
+    is_binary_target = TRUE
+    pctClassFIRST_total = tab[1,2] / sum(tab[,2]) * 100
 		pctClassLAST_total = 100 - pctClassFIRST_total
+  } else {
+    is_binary_target = FALSE
   }
 
   ### VARS, VARCLASS, VARNUM
@@ -2045,11 +2148,15 @@ InformationValue = function(
 
   # Create the data frames to store the WOE and IV results for each variable
   WOE = as.data.frame(matrix(nrow=0, ncol=10))
-  colnames(WOE) = c("var", "vartype", "type", "group", "nobs", "pctClassFIRST", "pctClassLAST", stat, "woe", "iv")
+  if (is_binary_target) {
+    colnames(WOE) = c("var", "vartype", "type", "group", "nobs", "pctClassFIRST", "pctClassLAST", stat, "woe", "iv")
+  } else {
+    colnames(WOE) = c("var", "vartype", "type", "group", "nobs", "nobs.dist", "y.dist", stat, "woe", "iv")
+  }
   ## NOTE: The columns of WOE are of the following type:
   ## char, char, char, num, num, num, num, num, num => the values of 'group' are converted to character even though they may be originally numeric (in categorical variables)
-  IV = as.data.frame(matrix(nrow=ncol(data), ncol=7))
-  colnames(IV) = c("var", "vartype", "type", "nobs", "nlevels", "TotalWOE", "IV")
+  IV = as.data.frame(matrix(nrow=ncol(data), ncol=8))
+  colnames(IV) = c("var", "vartype", "type", "nobs", "nlevels", "TotalWOE", "IV", "IVAdj")
 
   # Bin continuous variables in equal-size groups as many as given by parameter 'groups'
   # unless 'breaks' is NOT NULL in which case the values given in breaks are used for binning
@@ -2063,7 +2170,7 @@ InformationValue = function(
   for (v in varclass) {
     i = i + 1
     cat("\t", i, ": Computing Information Value for categorical variable", v, "\n")
-    
+
     # Store the variable type (character or numeric)
     # THIS IS VERY COMPLICATED TO DO SO I STORED THE PROCESS IN A FUNCTION!!
 		vartypes[[v]] = getVarType(data[,v])
@@ -2075,7 +2182,7 @@ InformationValue = function(
     data[is.na(data[,v]), v] = NaN
     ## IMPORTANT: DO NOT SET THE ANALYZED VARIABLE 'v' AS A factor BECAUSE THIS MAKES THE RESULT OF THE table() FUNCTION NOT HANDLE Inf and NaN values correctly (they may not be counted for instance! --don't know WHY)
     tab = as.data.frame(table(data[,v], useNA="always"))
-    values = factor(tab[tab[,2]>0,1]) 
+    values = factor(tab[tab[,2]>0,1])
       ## Notes:
       ## - It is important to filter the frequency table to those values having frequency > 0 (tab[,2]>0)
       ## because it may well happen that categorical variables (factors) have more levels than there
@@ -2086,20 +2193,36 @@ InformationValue = function(
     nlevels = nlevels(values)
 
     # Compute the Information Value
-    InfValue = iv(target, data[,v], event=event)
+    if (is_binary_target) {
+      # Binary target
+      InfValue = iv(target, data[,v], event=event)
 
-    # Store the results of the current variable into the WOE and IV data frames
-    rows = (lastrow+1):(lastrow+nlevels)
-		vtype = ifelse(vartypes[[v]] == "character", "character", "numeric")
-    WOE[rows,] = cbind(v, vtype, "categorical", as.character(InfValue$group), InfValue$nobs, InfValue$pctClassFIRST, InfValue$pctClassLAST, InfValue$stat, InfValue$woe, InfValue$iv)
+      # Store the results of the current variable into the WOE and IV data frames
+      rows = (lastrow+1):(lastrow+nlevels)
+      vtype = ifelse(vartypes[[v]] == "character", "character", "numeric")
+      WOE[rows,] = cbind(v, vtype, "categorical", as.character(InfValue$group), InfValue$nobs, InfValue$pctClassFIRST, InfValue$pctClassLAST, InfValue$stat, InfValue$woe, InfValue$iv)
       ## The use of as.character(InfValue$group) is important because o.w. its values are shown as numbers, because of the fact that group is a factor variable!
-    totalnobs = sum(InfValue$nobs)
-    totalpctClassFIRST = sum(InfValue$nobs*InfValue$pctClassFIRST) / totalnobs
-    totalpctClassLAST = sum(InfValue$nobs*InfValue$pctClassLAST) / totalnobs
-    totalwoe = sum(InfValue$woe)
-    totaliv = sum(InfValue$iv)
-    WOE[rows[nlevels]+1,] = c("--TOTAL--", "---------", "-----------", NA, totalnobs, signif(totalpctClassFIRST, digits=3), signif(totalpctClassLAST, digits=3), NA, signif(totalwoe, digits=4), signif(totaliv, digits=4))
-    IV[i,] = c(v, vtype, "categorical", totalnobs, nlevels, signif(totalwoe, digits=4), signif(totaliv, digits=4))
+      totalnobs = sum(InfValue$nobs)
+      totalpctClassFIRST = sum(InfValue$nobs*InfValue$pctClassFIRST) / totalnobs
+      totalpctClassLAST = sum(InfValue$nobs*InfValue$pctClassLAST) / totalnobs
+      totalwoe = sum(InfValue$woe)
+      totaliv = sum(InfValue$iv)
+      WOE[rows[nlevels]+1,] = c("--TOTAL--", "---------", "-----------", NA, totalnobs, signif(totalpctClassFIRST, digits=3), signif(totalpctClassLAST, digits=3), NA, signif(totalwoe, digits=4), signif(totaliv, digits=4))
+    } else {
+      # Continuous target
+      InfValue = iv.cont(target, data[,v])
+
+      # Store the results of the current variable into the WOE and IV data frames
+      rows = (lastrow+1):(lastrow+nlevels)
+      vtype = ifelse(vartypes[[v]] == "character", "character", "numeric")
+      WOE[rows,] = cbind(v, vtype, "categorical", as.character(InfValue$group), InfValue$nobs, InfValue$nobs.dist, InfValue$y.dist, InfValue$stat, InfValue$woe, InfValue$iv)
+      ## The use of as.character(InfValue$group) is important because o.w. its values are shown as numbers, because of the fact that group is a factor variable!
+      totalnobs = sum(InfValue$nobs)
+      totalwoe = sum(InfValue$woe)
+      totaliv = sum(InfValue$iv)
+      WOE[rows[nlevels]+1,] = c("--TOTAL--", "---------", "-----------", NA, totalnobs, signif(sum(InfValue$nobs.dist), digits=1), signif(sum(InfValue$y.dist), digits=1), NA, signif(totalwoe, digits=4), signif(totaliv, digits=4))
+    }
+    IV[i,] = c(v, vtype, "categorical", totalnobs, nlevels, signif(totalwoe, digits=4), signif(totaliv, digits=4), signif(totaliv*log(groups)/log(nlevels), digits=4))
     lastrow = lastrow + nlevels + 1
   }
 
@@ -2151,7 +2274,7 @@ InformationValue = function(
 			nmiss = sum(is.na(data[,v]))
 			WOE[lastrow+1,] = cbind(v, "numeric", "continuous", NaN, nmiss, signif(pctClassFIRST_total, digits=3), signif(pctClassLAST_total, digits=3), as.character(NA), NA, NA)
 			WOE[lastrow+2,] = c("--TOTAL--", "---------", "-----------", NA, nmiss, signif(pctClassFIRST_total, digits=3), signif(pctClassLAST_total, digits=3), as.character(NA), NA, NA)
-			IV[i,] = c(v, "numeric", "continuous", nmiss, 1, NA, NA)
+			IV[i,] = c(v, "numeric", "continuous", nmiss, 1, NA, NA, NA)
 		} else {
 			# Create the categorical grouping variable that is passed to the iv() function below
 			# Note the use of include.lowest=TRUE so that the smallest value is NOT assigned to group NA
@@ -2191,19 +2314,36 @@ InformationValue = function(
 			# Note that I place the NaN value as the LAST level because this is how NaN is placed for CATEGORICAL variables (i.e. those passed in parameter 'varclass')
 			group = factor(group, levels=c(group.levels, rep(NaN, foundNA)), ordered=TRUE)
 			nlevels = nlevels(group)
-			InfValue = iv(target, group, x=data[,v], stat=stat, event=event)
 
-			# Store the results of the current variable into the WOE and IV data frame
-			rows = (lastrow+1):(lastrow+nlevels)
-			WOE[rows,] = cbind(v, "numeric", "continuous", as.character(InfValue$group), InfValue$nobs, InfValue$pctClassFIRST, InfValue$pctClassLAST, InfValue$stat, InfValue$woe, InfValue$iv)
-				## The use of as.character(InfValue$group) is important because o.w. its values are shown as numbers, because of the fact that group is a factor variable!
-			totalnobs = sum(InfValue$nobs)
-			totalpctClassFIRST = sum(InfValue$nobs*InfValue$pctClassFIRST) / totalnobs
-			totalpctClassLAST = sum(InfValue$nobs*InfValue$pctClassLAST) / totalnobs
-			totalwoe = sum(InfValue$woe)
-			totaliv = sum(InfValue$iv)
-			WOE[rows[nlevels]+1,] = c("--TOTAL--", "---------", "-----------", NA, totalnobs, signif(totalpctClassFIRST, digits=3), signif(totalpctClassLAST, digits=3), NA, signif(totalwoe, digits=4), signif(totaliv, digits=4))
-			IV[i,] = c(v, "numeric", "continuous", totalnobs, nlevels, signif(totalwoe, digits=4), signif(totaliv, digits=4))
+			# Call the IV function that computes the information value
+			if (is_binary_target) {
+			  # Binary target
+  			InfValue = iv(target, group, x=data[,v], stat=stat, event=event)
+
+  			# Store the results of the current variable into the WOE and IV data frame
+  			rows = (lastrow+1):(lastrow+nlevels)
+  			WOE[rows,] = cbind(v, "numeric", "continuous", as.character(InfValue$group), InfValue$nobs, InfValue$pctClassFIRST, InfValue$pctClassLAST, InfValue$stat, InfValue$woe, InfValue$iv)
+  				## The use of as.character(InfValue$group) is important because o.w. its values are shown as numbers, because of the fact that group is a factor variable!
+  			totalnobs = sum(InfValue$nobs)
+  			totalpctClassFIRST = sum(InfValue$nobs*InfValue$pctClassFIRST) / totalnobs
+  			totalpctClassLAST = sum(InfValue$nobs*InfValue$pctClassLAST) / totalnobs
+  			totalwoe = sum(InfValue$woe)
+  			totaliv = sum(InfValue$iv)
+  			WOE[rows[nlevels]+1,] = c("--TOTAL--", "---------", "-----------", NA, totalnobs, signif(totalpctClassFIRST, digits=3), signif(totalpctClassLAST, digits=3), NA, signif(totalwoe, digits=4), signif(totaliv, digits=4))
+  		} else {
+  		  # Continuous target
+  		  InfValue = iv.cont(target, group, x=data[,v], stat=stat)
+
+  		  # Store the results of the current variable into the WOE and IV data frames
+  		  rows = (lastrow+1):(lastrow+nlevels)
+  		  WOE[rows,] = cbind(v, "numeric", "continuous", as.character(InfValue$group), InfValue$nobs, InfValue$nobs.dist, InfValue$y.dist, InfValue$stat, InfValue$woe, InfValue$iv)
+  		    ## The use of as.character(InfValue$group) is important because o.w. its values are shown as numbers, because of the fact that group is a factor variable!
+  		  totalnobs = sum(InfValue$nobs)
+  		  totalwoe = sum(InfValue$woe)
+  		  totaliv = sum(InfValue$iv)
+  		  WOE[rows[nlevels]+1,] = c("--TOTAL--", "---------", "-----------", NA, totalnobs, signif(sum(InfValue$nobs.dist), digits=3), signif(sum(InfValue$y.dist), digits=1), NA, signif(totalwoe, digits=4), signif(totaliv, digits=4))
+  		}
+			IV[i,] = c(v, "numeric", "continuous", totalnobs, nlevels, signif(totalwoe, digits=4), signif(totaliv, digits=4), signif(totaliv*log(groups)/log(nlevels), digits=4))
 		}
 
 		# Update lastrow for the next variable
@@ -2211,14 +2351,21 @@ InformationValue = function(
   }
 
   # Convert the numeric columns in WOE and IV to 'numeric' because by default all numbers are set to characters in a data frame!
-  WOE[,stat] = as.numeric(WOE[,stat])
-  WOE$woe = as.numeric(WOE$woe)
-  WOE$iv = as.numeric(WOE$iv)
-  IV$IV = as.numeric(IV$IV)
+  # WOE matrix
+  first_numeric_col = 5
+  last_numeric_col = ncol(WOE)
+  columns2convert = colnames(WOE)[first_numeric_col:last_numeric_col]
+  WOE = convert_columns(WOE, columns2convert, as.numeric)
+  # IV matrix
+  first_numeric_col = 4
+  last_numeric_col = ncol(IV)
+  columns2convert = colnames(IV)[first_numeric_col:last_numeric_col]
+  IV = convert_columns(IV, columns2convert, as.numeric)
+
   # Sort variables in IV by decreasing Information Value
   # Note that a new column called "row.names" is added as first column giving the original order of the rows! (nice!)
   IV = IV[order(IV$IV, decreasing=TRUE),]
-  
+
   # Create SPSS code for creating WOE variables
   if (spsscode) {
   	# Prepare the output data with the code
@@ -2254,7 +2401,7 @@ InformationValue = function(
 #
 # TODO:
 # - 2013/07/31: Improve the case when h$equidist = FALSE (i.e. when unequal bin sizes are used for the histogram) so that the calculation
-#               of the percentages to show on the vertical axis does NOT require to have a few consecutive bins with equal size but rather 
+#               of the percentages to show on the vertical axis does NOT require to have a few consecutive bins with equal size but rather
 #               compute those percentages using as the most frequen bin sizes as data for the fit that estimates them.
 # - 2014/01/03: Add a 'cutoff' parameter that specifies the line where to define the equal mixture of the color of the bars,
 #								so that we can represent green to red bars that change at the probability given by the event rate.
@@ -2283,7 +2430,7 @@ ScoreDistribution = function(
   ### YLIM
   # Store the value of ylim as ylim2 because it refers to the secondary axis
   ylim2 = ylim
-  
+
   ### COLORS
   # Repeat the color if only one was passed by the user (this is to make the whole function work when only one thing is plotted, either the observed values or the predicted (score) values)
   if (length(colors) == 1) colors = c(colors, colors)
@@ -2314,7 +2461,7 @@ ScoreDistribution = function(
 
   ### Read the data and keep the variables of interest
   cols = unique(c(target, score))     # The unique() function takes into account the possibility that target was not passed and thus was set equal to score
-  # Check the existence of the variables in the dataset 'data'  
+  # Check the existence of the variables in the dataset 'data'
   varsNotFound = checkVariables(data=data, vars=cols)
   if (!is.null(varsNotFound)) {
     stop("Execution of ScoreDistribution() stops.\n")
@@ -2323,8 +2470,8 @@ ScoreDistribution = function(
   names(data) = cols                  # Need to re-name the columns of 'data' because not doing that generates an error when the name in 'target' is the same as the name in 'score'
   target = data[,target]
   score = data[,score]
-  
-  # Check whether the binaryFlag value is correct, that is if the target variable really takes 2 values and 
+
+  # Check whether the binaryFlag value is correct, that is if the target variable really takes 2 values and
   if (binaryFlag) {
     targetvalues = unique(target)
     if (length(targetvalues) > 2 | min(targetvalues) != 0 | max(targetvalues) != 1) {
@@ -2343,13 +2490,13 @@ ScoreDistribution = function(
   toplot_n = aggregate(cbind(target, score), by=list(score_cat), FUN=length)
   cat("toplot_mean\t toplot_n\t toplot_sd\n")
   print(cbind(toplot_mean, toplot_n, toplot_sd))
-  
+
   # x values defining the position of the predicted and observed values
   # Note that I need to subset the x values to the bins where the histogram counts are > 0
   # because these bins are NOT included in the categorization of the target and score variables
   # done above by the cut() function!
   x = h$mids[h$counts>0]
-  
+
   ### Plot
   mar = par("mar"); on.exit(par(mar=mar))
   par(mar=mar+c(0,0,0,1))
@@ -2425,7 +2572,7 @@ ScoreDistribution = function(
     }
     axis(2, at=yticks, labels=labels)   # Show the percentages as labels
   }
- 
+
   if (plotFit) {
     # (2) Error bars (when requested) --this computation is here in order to adjust the vertical axis to make the error bars fit in the plot
     # Use the parameter passed by the user as the secondary vertical axis limits
@@ -2458,20 +2605,20 @@ ScoreDistribution = function(
       if (is.null(ylim2))
         ylim = range(c(toplot_mean$target, toplot_mean$score))
     }
-  
+
     # (3) Average observed values
     par(new=TRUE)
     ylim = ylim     # The value of ylim was set up above
     if (!targetNullFlag) {
       plot(x, toplot_mean$target, type="p", pch=21, col=colors[colind[1]], bg=colors[colind[1]], xlim=xlim, ylim=ylim, yaxt="n", xlab="", ylab="")
     }
-  
+
     # (4) Average predicted values
     if (!scoreNullFlag) {
       par(new=TRUE)
       plot(x, toplot_mean$score, type="b", pch="x", col=colors[colind[2]], xlim=xlim, ylim=ylim, yaxt="n", xlab="", ylab="")
     }
-  
+
     # (5) Error bars: PLOT THEM
     if (barsFlag) {
       for (i in 1:length(x)) {
@@ -2486,7 +2633,7 @@ ScoreDistribution = function(
       points(x, y+dy, pch="_", cex=2, col=colors[colind[1]])	# Note that cex defines the point size!
       points(x, y-dy, pch="_", cex=2, col=colors[colind[1]])	# Note that cex defines the point size!
     }
-    
+
     # (6) Tick values for the secondary axis and legend
     yticks = pretty(ylim)
     axis(4, at=yticks)
@@ -2583,7 +2730,7 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=1
 		if (is.null(paramsList$col))			paramsList$col = "blue"
 		if (is.null(paramsList$bands))		paramsList$bands = TRUE
 		if (is.null(paramsList$width))		paramsList$width = 2
-	}	
+	}
 
 	# Store the value of paramsList$print on a local variable 'print' because I need it below
 	print = paramsList$print
@@ -2641,7 +2788,7 @@ ModelFit <- model.fit <- function(dat, target="y", score="p", vars="p", groups=1
 		paramsList$xlim = "new"
 		paramsList$ylim = "new"
 		paramsList$print = FALSE	# The data were already printed at the previous call to plot.binned() when requested by the user... so do NOT print them again!
-		do.call("plot.binned", paramsList)	
+		do.call("plot.binned", paramsList)
 	}
 
 	# Restore graphical settings
@@ -2692,7 +2839,7 @@ PrecisionRecall <- F1 <- function(
 {
   ### Observed values
   OBS = as.numeric(target==event)
-  
+
   ### Predicted values
   c = 0
   ncuts = length(cuts)
@@ -2770,7 +2917,7 @@ roc <- function(formula, data, weights=NULL,
 								...)
   # Genera una curva roc a partir de un df con una columna de clase binaria (must be 0/1) y otra de probabilidades
   # Hace un rank de las probabilidades y construye una roc en base a dicho rank.
-  
+
   # Mediante el parametro pos, se pueden ir superponiendo hasta 4 curvas roc
   # Ejemplo de uso:
   #   roc(clase ~ prob, mod1)
@@ -2790,7 +2937,7 @@ roc <- function(formula, data, weights=NULL,
   df$clase <- factor(df$clase)
 
   # Rank de la prob. de 'malo'
-  #   df$grupo <- findInterval(df$pm, 
+  #   df$grupo <- findInterval(df$pm,
   #                            quantile(df$pm, seq(0, 1, len = groups - 1), type = quantile.type),
   #                            all.inside = TRUE, rightmost.closed = TRUE)
   ranking <- rank(df$pm,  ties.method="min", na.last="keep")
@@ -2803,7 +2950,7 @@ roc <- function(formula, data, weights=NULL,
 	if (is.null(groups)) {
 		df$grupo <- ranking
 	} else {
-		df$grupo <- findInterval(	ranking, 
+		df$grupo <- findInterval(	ranking,
 															quantile(ranking, seq(0, 1, len = groups), type=quantile.type),
 															all.inside=TRUE, rightmost.closed=TRUE)
 	}
@@ -2823,7 +2970,7 @@ roc <- function(formula, data, weights=NULL,
 
 	# Min and max pm for each grupo
 	probs.grupo <- aggregate(pm ~ grupo, data=df, FUN=function(x) { c(min(x), max(x)) })
-	probs.grupo$grupo <- as.character(probs.grupo$grupo)	# Convert the NUMERIC grupo values to character so that we can use them directly to access rows in the tbl.df data frame (I thought factor() also would work, but it seems it doesn't) 
+	probs.grupo$grupo <- as.character(probs.grupo$grupo)	# Convert the NUMERIC grupo values to character so that we can use them directly to access rows in the tbl.df data frame (I thought factor() also would work, but it seems it doesn't)
 	tbl.df <- cbind(tbl.df[probs.grupo$grupo,], probs.grupo[, 2])
 		## Note that we cbind() just column 2 of 'probs' because the min and max pm are stored together as a matrix
 		## having column names "pm.1" and "pm.2", which however cannot be referenced separately.
@@ -2837,7 +2984,7 @@ roc <- function(formula, data, weights=NULL,
 	colnames(first.row) <- colnames(tbl.df)
 	rownames(first.row) <- "0"					# The first row is assigned group "0", since the first actual group has id "1"
 	tbl.df <- rbind(first.row, tbl.df)
-	
+
 	# Compute the cumulative values based on the order given by grupo (which is how tbl.df is sorted (already)
 	cum_events <- cumsum(tbl.df[, 1:2])
   tbl.df[, c("Goods.acum", "Bads.acum", "Goods.acuminv", "Bads.acuminv")] <- cbind(cum_events, sapply(totals.n, rep, nrow(tbl.df)) - cum_events)
@@ -2847,7 +2994,7 @@ roc <- function(formula, data, weights=NULL,
 	# Specificity = (#Goods correctly captured) / (Total Goods) 			--> starts at 1 and ends at 0
 	# 1 - Sensitivity = (#Bads incorrectly captured) / (Total Bads)		--> starts at 1 and ends at 0
 	totals.n.mat <- sapply(c(totals.n, totals.n), rep, nrow(tbl.df))
-	tbl.df[, c("SpecInv", "Sens", "Spec", "SensInv")] <- 
+	tbl.df[, c("SpecInv", "Sens", "Spec", "SensInv")] <-
 			tbl.df[, c("Goods.acum", "Bads.acum", "Goods.acuminv", "Bads.acuminv")] / totals.n.mat
 
 	if (!is.null(weights)) {
@@ -2855,16 +3002,16 @@ roc <- function(formula, data, weights=NULL,
 		totals.weights <- as.vector( t( aggregate(weights ~ clase, data=df, subset=!is.na(df$grupo), FUN=sum)[,-1] ) )
 		## Note: no need to use na.rm=TRUE when computing the aggregate (they are automatically removed from the computations)
 		names(totals.weights) <- clase.values
-		
+
 		weights.grupo <- aggregate(weights ~ clase + grupo, data=df, FUN=sum)
 		# Transpose to get one column per target variable value
 		weights.grupo <- reshape(weights.grupo, direction="wide", idvar="grupo", timevar="clase")
-		weights.grupo$grupo <- as.character(weights.grupo$grupo)	# Convert the NUMERIC grupo values to character so that we can use them directly to access rows in the tbl.df data frame (I thought factor() also would work, but it seems it doesn't) 
+		weights.grupo$grupo <- as.character(weights.grupo$grupo)	# Convert the NUMERIC grupo values to character so that we can use them directly to access rows in the tbl.df data frame (I thought factor() also would work, but it seems it doesn't)
 		# Fix the column names.
 		# NOTE that the columns are NOT sorted by the timevar variable but they are sorted
 		# according to which one is encountered first during the dataset transpose!!! GRRRRR!!
 		# IN ADDITION, the variable names are NOT simply the values taken by the timevar variable,
-		# but the prefix '<var>.' is added!!! where <var> is the analyzed variable (e.g. weights.1, weights.0) GRRRRR 2!!!! 
+		# but the prefix '<var>.' is added!!! where <var> is the analyzed variable (e.g. weights.1, weights.0) GRRRRR 2!!!!
 		nam <- colnames(weights.grupo)[-1]
 		colnames(weights.grupo) <- c("grupo", sub("weights.", "", nam))
 
@@ -2877,25 +3024,25 @@ roc <- function(formula, data, weights=NULL,
 		tbl.df[weights.grupo$grupo, c("WeightedGoods.acum", "WeightedBads.acum")] <- weights.grupo[, clase.values]
 		tbl.df[, c("WeightedGoods.acum", "WeightedBads.acum")] <- cumsum( tbl.df[, c("WeightedGoods.acum", "WeightedBads.acum")] )		# Amazingly enough this cumulatively sums each of the selected columns!!
 		tbl.df[, c("WeightedGoods.acuminv", "WeightedBads.acuminv")] <- sapply(totals.weights, rep, nrow(tbl.df)) - tbl.df[, c("WeightedGoods.acum", "WeightedBads.acum")]
-		totals.weights.mat <- sapply( c(totals.weights, totals.weights), rep, nrow(tbl.df) )		
+		totals.weights.mat <- sapply( c(totals.weights, totals.weights), rep, nrow(tbl.df) )
 		tbl.df[, c("WeightedSpecInv", "WeightedSens", "WeightedSpec", "WeightedSensInv")] <-
-				tbl.df[, c("WeightedGoods.acum", "WeightedBads.acum", "WeightedGoods.acuminv", "WeightedBads.acuminv")] / totals.weights.mat 
+				tbl.df[, c("WeightedGoods.acum", "WeightedBads.acum", "WeightedGoods.acuminv", "WeightedBads.acuminv")] / totals.weights.mat
 		# Compute the following quantities:
 		# 1-Specificity = (Goods weight incorrectly captured) / (Total Goods Weight)	--> starts at 0 and ends at 1
 		# Sensitivity = (Bads weight correctly captured) / (Total Bads Weight)				--> starts at 0 and ends at 1
 		# 1-Specificity = (Goods weight incorrectly captured) / (Total Goods Weight) 	--> starts at 1 and ends at 0
 		# Sensitivity = (Bads weight correctly captured) / (Total Bads Weight)				--> starts at 1 and ends at 0
 	}
-	
+
 	# Agrego una ultima fila para generar el punto (0, 0)
   ## Lo hago en dos pasos porque me falla el rbind si los nombres de columnas no son iguales...
-#  ult.fila <- data.frame(0, 0, 
+#  ult.fila <- data.frame(0, 0,
 #    min.prob = MAX.max.prob, max.prob = 1,
 #    Goods.acum = 0, Bads.acum = 0, Goods.acum2 = 0, Bads.acum2 = 0,
 #    row.names = as.vector(as.character(groups)))
 #  colnames(ult.fila) <- colnames(tbl.df)
 #  tbl.df <- rbind(tbl.df, ult.fila)
-  
+
   # Area Under the Curve (formula is ok = b*delta/2 - (b-a)*delta/2 which is easier to implement than (a+b)*delta/2 because (b-a) can be simply computed as diff(Sens)
   AUC = sum((((2 * tbl.df$Sens[-1]) - diff(tbl.df$Sens)) /2) * diff(tbl.df$SpecInv))
 	# Accuracy Ratio or Gini Index = (2*AUC - 1).
@@ -2918,7 +3065,7 @@ roc <- function(formula, data, weights=NULL,
     color = col
   }
 	if (is.null(label)) label = deparse(substitute(data))
-	
+
   if (plot) {
 		if (pos == 1) {
 			if (!is.null(weights)) {
@@ -2944,7 +3091,7 @@ roc <- function(formula, data, weights=NULL,
 				par(mfg=c(1,1));
 			}
 	    par(new=TRUE)
-	    plot(tbl.df$SpecInv, tbl.df$Sens, type = 'o', pch=21, col=color, bg=color, 
+	    plot(tbl.df$SpecInv, tbl.df$Sens, type = 'o', pch=21, col=color, bg=color,
 	      xlim = c(0, 1), ylim = c(0, 1), lwd=lwd,
 	      ann = FALSE, axes = FALSE)
 			text(0.5, cex * pos / 7, paste(label, ': AUC=', formatC(AUC, format='g', round.AUC), ', AR/Gini=', formatC(AR, format='g', round.AUC), sep=""), cex = cex, col = color)

@@ -84,6 +84,7 @@ panel.smooth <- function(x, y, group, ...)
 ####################################### AUXILIARY functions ###################################
 # INDEX (sorted in the order they are defined)
 # cdf (auxiliary function for plot.cdf)
+# convertColumns
 # getAxisLimits
 # getBounds
 # getParamsList
@@ -98,6 +99,21 @@ panel.smooth <- function(x, y, group, ...)
 # setDefaultOptions
 # who
 # whos
+
+#' Convert a set of columns in data frame to another type
+#'
+#' @param df data frame containing the columns to convert.
+#' @param colnames string or array with column names to convert.
+#' @param FUN function responsible for the conversion (e.g. \code{as.numeric}).
+#'
+#' @return the input data frame with given columns converted to the type indicated by function \code{FUN}.
+convert_columns <- convertColumns <- function(df, colnames, FUN) {
+  colnames = parseVariables(colnames)
+  for (v in colnames) {
+    df[,v] = FUN(df[,v])
+  }
+  return(df)
+}
 
 # getAxisLimits
 # Get the axis limits of the current plot
@@ -228,7 +244,7 @@ getParamsList = function() {
   						extra=extraParamsList))
 }
 
-# pairsXAxisPosition 
+# pairsXAxisPosition
 #' Define the position of the x-axis in a pairs plot
 pairsXAxisPosition = function(xaxt="s")
 # Created: 2013/09/16
@@ -256,9 +272,9 @@ pairsXAxisPosition = function(xaxt="s")
   }
 
   return(list(side=side, outer=outer, line=line))
-}  
+}
 
-# pairsYAxisPosition 
+# pairsYAxisPosition
 #' Define the position of the y-axis in a pairs plot
 pairsYAxisPosition = function(yaxt="s")
 # Created: 2013/09/16
@@ -266,7 +282,7 @@ pairsYAxisPosition = function(yaxt="s")
 # Description: Defines the position in a pairs panel to place the y-axis ticks using the same logic as pairs()
 {
   mfg = par("mfg")  # 4-element array with the following info: current panel position, panel structure (e.g. (2,3,4,4))
-  
+
   # Y-axis
   if (yaxt == "n") {
     # Place the axis ticks next to the axis when no axis ticks have been required at the pairs() call
@@ -284,7 +300,7 @@ pairsYAxisPosition = function(yaxt="s")
       side = 2
     }
   }
-  
+
   return(list(side=side, outer=outer, line=line))
 }
 
@@ -304,7 +320,7 @@ CheckVariables <- checkVariables <- check.variables <- function(data, vars, prin
 #  if (!is.data.frame(data)) {
 #    stop("CHECKVARIABLES - ERROR: The dataset '", deparse(substitute(data)), "' is not a data frame")
 #  }
-  
+
   # Start
   varsNotFound = NULL
   varsInData = colnames(data)
@@ -313,7 +329,7 @@ CheckVariables <- checkVariables <- check.variables <- function(data, vars, prin
       varsNotFound = c(varsNotFound, v)
     }
   }
-  
+
   if (!is.null(varsNotFound)) {
     cat("CHECKVARIABLES: The following variables do not exist in data frame '", deparse(substitute(data)), "':\n", sep="")
     for (v in varsNotFound)
@@ -359,7 +375,7 @@ extractVariable <- extract.variable <- function(dat, var)
         cat("The variables indicated above were not found in dataset '", deparse(substitute(dat)), "'\n", sep="")
         return(NULL)
       }
-      var = dat[,var] 
+      var = dat[,var]
     }
     return(var)
   }
@@ -382,7 +398,7 @@ parseVariables <- function(vars) {
 extract <- function(intervals, digits=2, what=c("midpoint", "lower", "upper"))
 {
 	# Parse input parameters
-	what = match.arg(what) 
+	what = match.arg(what)
 
 	# Parse x
 	lower = as.numeric(gsub(",.*","",gsub("\\(|\\[|\\)|\\]","", intervals)))
@@ -428,9 +444,9 @@ whos = function(envir=.GlobalEnv, sortby=c("name","size"), decreasing=FALSE)
 #								along with their sizes, optionally sorting by size in ascending or descending order.
 {
   if (length(sortby) == 2) { sortby = "name" }
-	
+
 	size = sapply(ls(envir=envir) , function(x) object.size(get(x)))
-	if (tolower(sortby) == "size") 
+	if (tolower(sortby) == "size")
 	{
 		size = sort(size, decreasing=decreasing)
 	}
@@ -438,7 +454,7 @@ whos = function(envir=.GlobalEnv, sortby=c("name","size"), decreasing=FALSE)
 	{
 		size = size[order(names(size), decreasing=TRUE)]
 	}
-	
+
 	cat("Size of objects in bytes\n")
 	print(as.data.frame(size))
 	cat("Size of objects in bytes\n")
@@ -447,64 +463,64 @@ whos = function(envir=.GlobalEnv, sortby=c("name","size"), decreasing=FALSE)
 # ellipse
 # Three auxiliary functions used by plot.outliers2d
 # ellipse() and ellipsem() were taken from: http://ms.mcmaster.ca/peter/s4c03/s4c03_0506/classnotes/DrawingEllipsesinR.pdf
-# The function ellipsem() addsthe ellipse t(x-mu)%*%amat%*%(x-mu) = c2 to the current plot or a new plot; 
-# function ellipse() draws an ellipse given the half-lengths of the axes, the angle of orientation, and the centre; 
+# The function ellipsem() addsthe ellipse t(x-mu)%*%amat%*%(x-mu) = c2 to the current plot or a new plot;
+# function ellipse() draws an ellipse given the half-lengths of the axes, the angle of orientation, and the centre;
 # angle() computes the angle between the X-axis and a vector drawn from the origin to the point (x, y).
-ellipse = function (hlaxa = 1, hlaxb = 1, theta = 0, xc = 0, yc = 0, newplot = F, npoints = 100, ...) 
-{ 
-  a <- seq(0, 2 * pi, length = npoints + 1) 
-  x <- hlaxa * cos(a) 
-  y <- hlaxb * sin(a) 
-  alpha <- angle(x, y) 
-  rad <- sqrt(x^2 + y^2) 
-  xp <- rad * cos(alpha + theta) + xc 
-  yp <- rad * sin(alpha + theta) + yc 
-  if (newplot) 
-    plot(xp, yp, type = "l", ...) 
+ellipse = function (hlaxa = 1, hlaxb = 1, theta = 0, xc = 0, yc = 0, newplot = F, npoints = 100, ...)
+{
+  a <- seq(0, 2 * pi, length = npoints + 1)
+  x <- hlaxa * cos(a)
+  y <- hlaxb * sin(a)
+  alpha <- angle(x, y)
+  rad <- sqrt(x^2 + y^2)
+  xp <- rad * cos(alpha + theta) + xc
+  yp <- rad * sin(alpha + theta) + yc
+  if (newplot)
+    plot(xp, yp, type = "l", ...)
   else lines(xp, yp, ...)
   invisible()
 }
-ellipsem = function (mu, amat, c2, npoints = 100, showcentre = T, ...) 
-{ 
-  if (all(dim(amat) == c(2, 2))) { 
-    eamat <- eigen(amat) 
-    hlen <- sqrt(c2/eamat$val) 
-    theta <- angle(eamat$vec[1, 1], eamat$vec[2, 1]) 
-    ellipse(hlen[1], hlen[2], theta, mu[1], mu[2], npoints = npoints, 
-            ...) 
-    if (showcentre) 
-      points(mu[1], mu[2], pch = 3) 
-  } 
+ellipsem = function (mu, amat, c2, npoints = 100, showcentre = T, ...)
+{
+  if (all(dim(amat) == c(2, 2))) {
+    eamat <- eigen(amat)
+    hlen <- sqrt(c2/eamat$val)
+    theta <- angle(eamat$vec[1, 1], eamat$vec[2, 1])
+    ellipse(hlen[1], hlen[2], theta, mu[1], mu[2], npoints = npoints,
+            ...)
+    if (showcentre)
+      points(mu[1], mu[2], pch = 3)
+  }
   invisible() # This allows for an object to be returned when they are assigned but which do not print when they are not assigned
 }
-angle = function (x, y) 
-{ 
-  angle2 <- function(xy) { 
-    x <- xy[1] 
-    y <- xy[2] 
-    if (x > 0) { 
-      atan(y/x) 
-    } 
-    else { 
-      if (x < 0 & y != 0) { 
-        atan(y/x) + sign(y) * pi 
-      } 
-      else { 
-        if (x < 0 & y == 0) { 
-          pi 
-        } 
-        else { 
-          if (y != 0) { 
-            (sign(y) * pi)/2 
-          } 
-          else { 
-            NA 
-          } 
-        } 
-      } 
-    } 
-  } 
-  apply(cbind(x, y), 1, angle2) 
+angle = function (x, y)
+{
+  angle2 <- function(xy) {
+    x <- xy[1]
+    y <- xy[2]
+    if (x > 0) {
+      atan(y/x)
+    }
+    else {
+      if (x < 0 & y != 0) {
+        atan(y/x) + sign(y) * pi
+      }
+      else {
+        if (x < 0 & y == 0) {
+          pi
+        }
+        else {
+          if (y != 0) {
+            (sign(y) * pi)/2
+          }
+          else {
+            NA
+          }
+        }
+      }
+    }
+  }
+  apply(cbind(x, y), 1, angle2)
 }
 
 # cdf
@@ -593,7 +609,7 @@ quantile.weight = function(x, weight, probs=seq(0,1,0.25), type=4, precision=4)
     stop("The weight variable ", deparse(substitute(weight))," and the analysis variable ", deparse(substitute(x))," have different lengths:", length(weight), "and", length(x), "respectively.")
   if (type != 4)
     stop("The type parameter value ", type, " is not valid. The only accepted value is 4, which corresponds to the type=4 method described in R function quantile().")
-  
+
   # Note that order() is different from rank()!! order() gives the order of the indices of x so that x is in sorted.
   # rank() gives the rank of each x in the order that x is arranged!
   # This implies the x[order(x)] returns x in ascending order, but x[rank(x)] is something completely different!
@@ -601,7 +617,7 @@ quantile.weight = function(x, weight, probs=seq(0,1,0.25), type=4, precision=4)
   xsort = x[xorder]
   wsort = weight[xorder]
   wtotal = sum(as.numeric(weight), na.rm=TRUE)	# as.numeric() is used to avoid overflow... this overflow error happened once when using large values for weight!
-  
+
   # Compute the CDF of x weighted by variable weight (i.e. each x is represented as many times as the corresponding value given in weight)
   X = as.data.frame(cbind(x=xsort, w=wsort, p=cumsum(wsort/wtotal)))
   # p is cdf with weights, q is cdf w.o. weights!
@@ -632,7 +648,7 @@ quantile.weight = function(x, weight, probs=seq(0,1,0.25), type=4, precision=4)
 			qgroup = qsubset[ind]
 			xgroup = xsubset[ind]
 			wgroup = wsubset[ind]
-			
+
 			# q and x quantile
 			qmax = qgroup[last]
 			xmax = xgroup[last]
@@ -645,11 +661,11 @@ quantile.weight = function(x, weight, probs=seq(0,1,0.25), type=4, precision=4)
 				quant = qmax
 				xquantile = xmax
 			}
-			
+
 			# Weight quantile is the cumulative sum of the weights UP TO the current group!
 			# TODO: (2015/02/05) SOMETHING IS WRONG HERE
 			wquantile = wquantilePrev + sum(as.numeric(wgroup))
-			
+
 			X$group[indX+1:last] = rep(paste("(", signif(xquantilePrev, digits=precision), ",", signif(xquantile, digits=precision), "]", sep=""), last)
 			# Update X index, subset vectors and quantiles
 			indX = indX + last
@@ -670,11 +686,11 @@ quantile.weight = function(x, weight, probs=seq(0,1,0.25), type=4, precision=4)
 		xquantiles = c(xquantiles, xquantile)
 		wquantiles = c(wquantiles, wquantile)
   }
-  
+
   output = as.data.frame(cbind(quantiles, xquantiles, wquantiles))
   colnames(output) = c("q", deparse(substitute(x)), deparse(substitute(weight)))
   rownames(output) = paste(probs*100,"%", sep="")
- 
+
  	print(sum(output[,3]))
  	print(wtotal)
   return(output)
@@ -733,7 +749,7 @@ logitInv = function(x, adjust=0)
 # panel.dist
 # panel.hist
 # panel.outliers2d	(NEW May-2014)
-# 
+#
 
 # 2013/09/21
 # plot.dist: Scatter plot with boxplot and density displayed on the side of each axis
@@ -849,15 +865,15 @@ panel.dist = function(x, add=TRUE, histogram=FALSE, horizontal=TRUE, xlim=NULL, 
 #                        - create a new plot (add=FALSE)
 #                        - plot also a histogram (histogram=TRUE)
 #                        - show the density and boxplot in vertical position (horizontal=FALSE)
-{ 
+{
   # Density estimation
   dens = density(x, na.rm=TRUE)
-  
+
   # Histogram
   if (histogram) {
     hist = hist(x, plot=FALSE)
   }
-  
+
   # Create a new plot if requested
   if (!add) {
     if (horizontal) { # boxplot is horizontal => density is horizontal
@@ -871,7 +887,7 @@ panel.dist = function(x, add=TRUE, histogram=FALSE, horizontal=TRUE, xlim=NULL, 
     }
     plot(dens, type="n", xlab="", ylab="", xlim=xlim, ylim=ylim, ...)
   }
-  
+
   # Start plotting
   usr <- par("usr"); on.exit(par(usr))
   if (histogram) {
@@ -880,7 +896,7 @@ panel.dist = function(x, add=TRUE, histogram=FALSE, horizontal=TRUE, xlim=NULL, 
     ### horizontally (horizontal=FALSE, because this parameter refers to the boxplot horizontality!) and
     ### plot.hist() function does NOT have an option to show the plot rotated from the normal display)
     ### However, I could consider using plot(hist$density, hist$mid, type="s") to show the histogram rotated but this
-    ### still needs some development because the way it is shown is not in the normal histogram way... 
+    ### still needs some development because the way it is shown is not in the normal histogram way...
     ### A possible evolution of this is using the rect() function to create bars, as is done by panel.hist() in this code! (by Uwe Ligges)
     # IMPORTANT: Define the scale for the barplot (so that the x values coincide with the x values of the plot!)
     # This is necessary because the barplot positions the bars ALWAYS on the values 0.5, 1.5, ..., length(hist$mid)-0.5,
@@ -919,7 +935,7 @@ panel.hist <- function(x, ...)
 # (taken from help(pairs))
 # Note the inclusion of the '...' parameter in order to avoid any errors when additional parameters
 # are passed to other functions used in the pairs() call to be used for the different panels
-# (e.g. plot.binned() below which accepts many parameters) 
+# (e.g. plot.binned() below which accepts many parameters)
 {
 	# Change the user coordinates for the panel so that the vertical axis varies from 0 to 1.5.
 	# This allows a percent histogram to fit in the panel and leaves space above the histogram
@@ -942,9 +958,9 @@ plot.image = function(x, y, col="red", nlevels=12, xaxt="s", yaxt="s", addXAxis=
 # Created: 2013/07/08
 # Modified: 2013/11/14
 # Description: Shows an image that represents the levels of the 2D density estimate of a pair of numeric variables using kde2d.
-# Parameters: 
+# Parameters:
 #             x, y:     numeric variables whose 2D density we want to plot
-#             nlevels:  number of colors used in the image representing the 2D density estimation 
+#             nlevels:  number of colors used in the image representing the 2D density estimation
 #                       nlevels=12 is the value used by default by the image() function to define the number of colors used.
 # Note: the xaxt and yaxt parameters are needed in order to receive the value passed by the user when calling pairs()
 # For some reason the xaxt and yaxt options are not passed to this function when not explicitly listed here! (I guess this happens with all other graphical parameters passed in ...???)
@@ -970,13 +986,13 @@ plot.image = function(x, y, col="red", nlevels=12, xaxt="s", yaxt="s", addXAxis=
     	# Otherwise calling image() on all NA data gives an error. Note that it suffices for ONE value to be non-NA for the image() function to work.
     	xy <- kde2d(jitter(x[indok]),jitter(y[indok]))
     }
-  
+
     # Show the image plus contour lines
 		# NOTE: (2015/02/09) The add=TRUE feature does NOT add the image to an existing plot as expected,
 		# because image() paints on the existing graphics (see documentation)
     image(xy, add=add, col=whitered.palette(nlevels), ...)
     contour(xy, add=TRUE)
-  
+
     # Add axis ticks if requested
     if (addXAxis) {
       axisProperty = pairsXAxisPosition(xaxt=xaxt)
@@ -1064,7 +1080,7 @@ plot.errors = function(x, y, yerror, col="blue", ...) {
 # show just the point labels indicating the bin size. This is to mimic what the PartialPlot() function does in SPSS/Python where we can
 # easily appreciate the size of the point because we can see the pointlabel indicating the bin size. However, SPSS has a smart way of
 # placing the labels when there is overlap... and R does not!
-# 
+#
 # - 2016/12/01: Add the possibility of specifying xlim="both" and ylim="both" in which case two plots are shown in parallel (mfrow=c(1,2)),
 # the left plot showing the original axis limits and the second plot showing the new (reduced after grouping) axis limits)
 plot.binned = function(
@@ -1072,7 +1088,7 @@ plot.binned = function(
 	xtransform=NULL,	# transformation to apply to the x values. Either NULL, "", "orig" or "log" which applies the safe log function to the original values BEFORE grouping (this limits the influence of outliers)
 	center=mean, scale=sd, groups=20, breaks=NULL, rank=TRUE,
   lm=TRUE, loess=TRUE,
-  circles=NULL, thermometers=NULL, 
+  circles=NULL, thermometers=NULL,
   	# 'circles' and 'thermometers' must be EXPRESSIONS that parameterize the corresponding symbol based on the computed grouped values
   	# (e.g. circles=expression(x_n) or thermometers=expression(cbind(x_n,y_n,target_center)), since these values would not exist during the function call)
   	# 'thermometers' should be an expression that resolves to a matrix of 3 or 4 columns, where the first 2 columns contain variables that define the width and height of the thermometer
@@ -1118,7 +1134,7 @@ plot.binned = function(
 #                        Added parameters 'xlimProperty', 'ylimProperty', 'ylim2Property' which can be either "new" or "orig" to indicate whether to use the new (after x categorization) range of values or the original range of values
 #                        respectively for the x-axis scale, the y-axis scale and the secondary y-axis scale used for the target variable.
 #                        Added parameters 'addXAxis' and 'addYAxis' to solve the problem of manually adding the axis ticks on the pairs() plots. The idea is that the axis ticks are manually added when pairs() is run with xaxt="n" and/or yaxt="n" and the user explicitly requests to add the axis ticks.
-#                        Added parameter 'addY2Axis' to make sure that the secondary y-axis is shown on every panel subplot when the secondary y-axis scale is NOT the same (which happens --unless different missing patterns occur in the data-- when ylim2Property="orig") 
+#                        Added parameter 'addY2Axis' to make sure that the secondary y-axis is shown on every panel subplot when the secondary y-axis scale is NOT the same (which happens --unless different missing patterns occur in the data-- when ylim2Property="orig")
 #                        Added parameter 'plot' that defines wheter the plot is produced or not. This is useful when we just want to have the binned data generated by this function.
 #                        Eliminated parameter 'pairsFlag'. Now its value is computed automatically by the function by checking whether this function was called from a pairs() function, using sys.calls().
 #                        Eliminated parameter 'return'. Now I ALWAYS return the binned data used for plotting.
@@ -1200,7 +1216,7 @@ plot.binned = function(
   on.exit(par(xpd))
   #----------------------------------- Parse input parameters ---------------------------------#
 
-  
+
   #------------------------------------ Data preparation --------------------------------------#
   ### NOTE: (2013/09/16) This section of reading the data could be radically improved by:
   ### - allowing missing values for the y, target and pred variables
@@ -1240,7 +1256,7 @@ plot.binned = function(
 	y = y[xorder]
 	if (!is.null(pred))   { pred = pred[xorder] }
 	if (!is.null(target)) { target = target[xorder] }
-  
+
 	if (!grouped)
 	{
 	  if (is.null(breaks)) {
@@ -1251,7 +1267,7 @@ plot.binned = function(
 	  }
 		# Group the values of x when it is not already grouped.
 		if (rank)
-		{	
+		{
 		  # Group the values of x based on its rank (this is equivalent to using the quantile() function to define equally-sized groups!)
 		  # Note that here the breaks apply to the rank values of x, NOT to the original x values! (the rank values look like 1, 2, ..., n)
 		  x_cat = as.numeric(cut(rank(x), breaks=breaks, right=FALSE))
@@ -1264,7 +1280,7 @@ plot.binned = function(
 	  # Define the value of x_n to be used in the plots and lm() and loess() fits below
 	  if (!is.null(size)) x_n = size
 	}
-	
+
   dat = data.frame(x=x, y=y)
 	if (!is.null(pred))   { dat$pred = pred }
   if (!is.null(target)) { dat$target = target }
@@ -1302,7 +1318,7 @@ plot.binned = function(
 #	toplot = rename.vars(toplot, from="Group.1", to="x_cat", info=FALSE)
 #	toplot = toplot[,c("x_cat","x_min","x_max","x_center","y_center","y_min","y_max","x_scale","y_scale","x_n","y_n")]
   #------------------------------------ Data preparation --------------------------------------#
-  
+
 
   #----------------------------------------- Fits --------------------------------------------#
 	# Linear fit (weighted by the number of cases in each group)
@@ -1474,10 +1490,10 @@ plot.binned = function(
     if (limits) {
     	abline(v=x_min, col="gray", lty=2)
     }
-    
+
     if (lm & !inherits(lmfit, "try-error")) { lines(x_center, lmfit$fitted, col=col.lm,  lwd=2, lty=2) }
     if (loess & !inherits(loessfit, "try-error")) { lines(x_center, loessfit$fitted, col=col.loess, lwd=2) }
-    
+
     # If non-null, plot the fitted values (given in pred).
     if (!is.null(pred))
     {
@@ -1497,7 +1513,7 @@ plot.binned = function(
     	points(x_center, toplot$y_lower, col=col, pch="_", lwd=4, lty=2)
     	segments(x_center, toplot$y_lower, x_center, toplot$y_upper, col=col, lwd=2)
     }
-    
+
     # Reference line and labels
     abline(h=0)
     if (is.null(thermometers) & pointlabels) {
@@ -1507,7 +1523,7 @@ plot.binned = function(
       par(xpd=xpd)
     }
     title(title)
-    
+
     # If a target variable was passed and the requested symbols plot is NOT thermometers,
     # plot the summarized target values by x_cat on a secondary axis.
     # If thermometers symbols are used above, the target variable has already been used to define the fill level of the thermometers
@@ -1550,9 +1566,9 @@ plot.binned = function(
 #	detach(toplot)
 #	# Restore plotting parameters changed above
 #	par(xpd=xpd)
-  
+
 	if (print) { cat("Data plotted...\n"); print(toplot) }
-	
+
   output = list(data=toplot)
   if (lm)    { output$lm.fit = lmfit }
   if (loess) { output$loess.fit = loessfit }
@@ -1574,7 +1590,7 @@ pairs.custom = function(x, lower.panel=panel.image, diag.panel=panel.dist, upper
 #               - Diagonal: density estimation with overimposed boxplot
 #               - Upper diagonal: binned scatter plots produced by plot.binned() function defined above.
 #               - Lower diagonal: correlation values produced by panel.cor() function defined above or the 2D kernel density estimation shown as image intensities
-# Parameters:  
+# Parameters:
 #               x:        	Matrix or data frame whose columns are used to produce the pairs plot
 #								max.panels: Max number of panels to show per pairs plot. Several pairs plot are constructed when the number of variables in x is larger than max.panels.
 #								target:			Name of the variable in x containing a target variable of interest. In this case the target variable is shown at the first row of the panel on EVERY pairs plot generated (when max.panels < number of columns in x)
@@ -1610,7 +1626,7 @@ pairs.custom = function(x, lower.panel=panel.image, diag.panel=panel.dist, upper
 #    # Next parameter to remove is located at paramsListToRemove[p+1]-1 since after removing element 'p' there is one less element in the list!!
 #    paramsListToRemove = paramsListToRemove - 1
 #  }
-  
+
   #-------------------------- Parse Input parameters ---------------------------
   # Put all calling parameters into a parameter list for the pairs() function call with do.call()
   paramsList = as.list(call)
@@ -1653,14 +1669,14 @@ pairs.custom = function(x, lower.panel=panel.image, diag.panel=panel.dist, upper
 }
 
 	### Target variable
-	# If a target parameter is passed, place it as first column of x so that it is plotted at the first row of the pairs plot 
+	# If a target parameter is passed, place it as first column of x so that it is plotted at the first row of the pairs plot
 	# in EVERY generated pairs plot.
 	if (!is.null(target)) {
 		# Check the existence of the variable indicated in 'target' in matrix or data frame 'x'.
 		# (recall that 'target' contains the NAME of the target variable)
 		if (!is.null(checkVariables(x, target))) {
 			stop("The variables indicated above were not found in dataset '", deparse(substitute(x)), "'")
-		} 
+		}
 		# Place the target variable at the first column of matrix or data frame x so that it is more easily handled below when generating the pairs plots
 		x = cbind(x[,target,drop=FALSE], x[,-match(target, colnames(x)),drop=FALSE])
 		# Update the 'x' component of paramsList so that the correct order of variables is passed to pairs()
@@ -1705,7 +1721,7 @@ pairs.custom = function(x, lower.panel=panel.image, diag.panel=panel.dist, upper
 				paramsList$x = x[,c(1,i:min(i+max.panels-1, imax))]
 			} else {
 				paramsList$x = x[,i:min(i+max.panels-1, imax)]
-			}			
+			}
 		  # Call the pairs() function
 		  do.call("pairs", paramsList)
 		  if (pause & plotnum < nplots) {
@@ -1715,7 +1731,7 @@ pairs.custom = function(x, lower.panel=panel.image, diag.panel=panel.dist, upper
 		}
 	} else {
 		# Call the pairs() function
-		do.call("pairs", paramsList)	
+		do.call("pairs", paramsList)
 	}
 }
 
@@ -1724,7 +1740,7 @@ hist.log = function(x, constant=1, format="E", cex=1, las=1, ...)
 # Created: 		    2008/09/19
 # Modified: 	    2008/09/19
 # Description:	  Histogram of a variable using log scale, with the original scale used as labels.
-# Parameters:	
+# Parameters:
 #				x			    Vector of values to use in the histogram.
 # 			constant	Constant to shift the log transformation in sign(x)*log10(constant + x).
 # 			format		Format to use for the numbers in the axis labels.
@@ -1736,9 +1752,9 @@ hist.log = function(x, constant=1, format="E", cex=1, las=1, ...)
 
 	xmin = floor(min(x))
 	xmax = ceiling(max(x))
-	
+
 	hist(x, xaxt="n", ...)
-	
+
 	axis(1, at=xmin:xmax, labels=FALSE);
 	labels = as.character(formatC(10^(xmin:xmax), format=format, digits=0))
 	mtext(labels, side=1, at=xmin:xmax, line=1, cex=cex, las=las);
@@ -1753,7 +1769,7 @@ plot.log = function(x, y, log="x", constant=c(1,1), format=c("E","E"), cex=c(1,1
 # Created: 		  2008/09/19
 # Modified:   	2008/09/19
 # Description: 	Plot with log scale in one or the two axis, with the original scale used as labels.
-# Parameters:	
+# Parameters:
 #				        x			    Vector of values to plot in the horizontal axis.
 #				        y			    Vector of values to plot in the vertical axis.
 # 				      log		    1-D or 2-D vector listing the axes to be log-transformed
@@ -1774,30 +1790,30 @@ plot.log = function(x, y, log="x", constant=c(1,1), format=c("E","E"), cex=c(1,1
 
 	#------------------------------- Parse input parameters ----------------------------------#
 	x = x; logx = FALSE; xaxt = par("xaxt")
-	y = y; logy = FALSE; yaxt = par("yaxt") 
+	y = y; logy = FALSE; yaxt = par("yaxt")
 	if ("x" %in% tolower(log))
-	{ 
+	{
 		logx = TRUE
 		xlog = safeLog(x, constant[1])
 		x = xlog
 		xaxt = "n"
 	}
-	
+
 	if ("y" %in% tolower(log))
-	{ 
+	{
 		logy = TRUE
 		ylog = safeLog(y, constant[2])
 		y = ylog
 		yaxt = "n"
 	}
-	
+
 	xcex = ycex = 1
 	if (!is.null(cex))
 	{
 		xcex = cex[1]
 		if (length(cex) > 1)	{ ycex = cex[2] }
 	}
-	
+
 	xlas = ylas = 1
 	if (!is.null(las))
 	{
@@ -1809,14 +1825,14 @@ plot.log = function(x, y, log="x", constant=c(1,1), format=c("E","E"), cex=c(1,1
 
 	#--------------------------------------- Plot --------------------------------------------#
 	plot(x, y, xaxt=xaxt, yaxt=yaxt, ...)
-	
+
 	if (logx)
 	{
 		axis(1, at=xmin:xmax, labels=FALSE);
 		labels = as.character(formatC(10^(xmin:xmax), format=format[2], digits=0))
 		mtext(labels, side=1, at=xmin:xmax, line=1, cex=xcex, las=xlas);
 	}
-	
+
 	if (logx)
 	{
 		axis(2, at=ymin:ymax, labels=FALSE);
@@ -1831,7 +1847,7 @@ plot.axis = function(x, y, xticks=NULL, xlabels=NULL, las=1, grid=TRUE, lty.grid
 # Created: 		    2008/09/25
 # Modified:   	  2008/09/25
 # Description: 	  Plot using specified x tick marks. Optionally a grid is shown.
-# Parameters:	
+# Parameters:
 #				x			    Vector of values to plot in the horizontal axis.
 #				y			    Vector of values to plot in the vertical axis.
 #				xticks	  Ticks to use in the x axis
@@ -1851,7 +1867,7 @@ plot.axis = function(x, y, xticks=NULL, xlabels=NULL, las=1, grid=TRUE, lty.grid
 	{
 		axis(1, at=xticks, labels=xlabels, las=las)
 	}
-	
+
 	if (grid)
 	{
 		abline(v=xticks, lty=lty.grid, lwd=lwd.grid)
@@ -1905,7 +1921,7 @@ plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=p
 	if (plot1.name == "barplot") {
 		# Generate the barplot and set the x values to be the x-axis position of the bars
 		xaxs = "i"
-		x = do.call(plot1.name, c(list(x, xaxs=xaxs), plot1_options, ...))		
+		x = do.call(plot1.name, c(list(x, xaxs=xaxs), plot1_options, ...))
 			## Use xaxs="i" (i.e. the x-axis spans just the data plotted,
 			## with no extension as is the case with default xaxs="s")
 			## so that the x-axis of the second plot matches the x-axis of the barplot!
@@ -1950,7 +1966,7 @@ plot2 = function(x, y=NULL, x2=NULL, y2=NULL, sortx=TRUE, plot1=barplot, plot2=p
 			mtext(side=4, text=y2lab, line=2, col=plot2_options$col.axis, cex=plot2_options$cex.lab)
 		}
 	}
-	
+
 	return(invisible(list(x=x, x2=x2, xlim=xlim, xaxs=xaxs, mar=mar)))
 }
 
@@ -1959,7 +1975,7 @@ plot.hist = function(x, y, ...)
 # Created: 		  2008/10/03
 # Modified: 	  2008/10/03
 # Description: 	Plot a histogram.
-# Parameters:	
+# Parameters:
 #				x			  Breaks of histogram
 #				y			  Counts or density of histogram
 #				...		  Additional parameters to pass to the plot() function.
@@ -2003,7 +2019,7 @@ plot.outliers2d = function(x, y=NULL, id=NULL, center=median, scale=cov, cutoff=
   xy = cbind(x[indok],y[indok])
   # Name the rows using the id variable
   if (!is.null(id)) rownames(xy) = id[indok]
-  
+
   ### Plot
   if (plot) {
 		if (add) {
@@ -2019,7 +2035,7 @@ plot.outliers2d = function(x, y=NULL, id=NULL, center=median, scale=cov, cutoff=
 			## Therefore, the result of deparse(substitute(x)) will be the plotted values and NOT the variable names.
 			## This should be solved by replacing xy with substitute(xy). See 'R Help.txt' under entry "PARSE FUNCTION PARAMETERS".
   }
-  
+
   # Compute the centroid and the covariance matrix
   centroid = apply(xy, 2, FUN=center)
   SIGMA = do.call(scale, list(xy))
@@ -2031,20 +2047,20 @@ plot.outliers2d = function(x, y=NULL, id=NULL, center=median, scale=cov, cutoff=
   maha2 = rowSums((xyc %*% solve(SIGMA)) * xyc) # VERY SMART CALCULATION!
   gaussian.density = exp(-0.5*maha2) / (2*pi*sqrt(det(SIGMA)))
   names(gaussian.density) = rownames(xy)
-  
+
   # Plot the estimated density surface
   #   redblue.palette = colorRampPalette(c("red", "blue"))
   #   ncol = 50
   #   colors = redblue.palette(ncol)
   #   denscol = cut(dens2, quantile(dens2, probs=seq(0,1,1/ncol)))
   #   persp(gx, gy, dens2, col=colors[denscol], ticktype="detailed", theta=40, phi=20)
-  
+
   ### 2D density estimation
   if (plot & plot.kde) {
     xy.kde = kde2d(xy[,1], xy[,2])
     contour(xy.kde$x, xy.kde$y, xy.kde$z, col="green", nlevels=5, add=TRUE, lwd=lwd)
   }
-  
+
   ### Compute the normal density in order to generate a contour plot (ellipses)
   # Generate the grid
   xrange = range(x)
@@ -2062,7 +2078,7 @@ plot.outliers2d = function(x, y=NULL, id=NULL, center=median, scale=cov, cutoff=
 		contour(gx, gy, dens2, nlevels=5, add=TRUE, lwd=lwd, col="blue")
 		points(centroid[1], centroid[2], pch="x", lwd=lwd, cex=2, col="blue")
   }
-  
+
   # Using the ellipse() function...
   gaussian.cutoff = cutoff*max(gaussian.density)
   #  print(quantile(gaussian.density, probs=seq(0,1,1/100)))
@@ -2071,7 +2087,7 @@ plot.outliers2d = function(x, y=NULL, id=NULL, center=median, scale=cov, cutoff=
   cat("Min of estimated gaussian density:", formatC(min(gaussian.density), format="e", digits=4), "\n")
   maha2.cutoff = -2 * log(2*pi*sqrt(det(SIGMA)) * gaussian.cutoff)
   if (plot) try( ellipsem(centroid, solve(SIGMA), maha2.cutoff , col=col.outlier, lwd=lwd) )
-  
+
   # Show the cutoff ellipse
   # NOTE: the above call to ellipse() is more reliable in terms of showing the actual cutoff
   #  contour(gx, gy, dens2, levels=cutoff*max(gaussian.value), add=TRUE, lwd=lwd, col="red")
@@ -2091,7 +2107,7 @@ plot.outliers2d = function(x, y=NULL, id=NULL, center=median, scale=cov, cutoff=
     cat("Number of outliers detected for variables", varnames, ":", length(outliers), "(", formatC(length(outliers) / nrow(xy) * 100, format="g", digits=1), "%)\n")
     cat("No outliers detected.\n")
   }
-  
+
   return(invisible(outliers))
 }
 
@@ -2121,13 +2137,13 @@ biplot.custom = function(x, pc=1:2, arrowsFlag=TRUE, pointsFlag=FALSE, outliersF
 #               - 2D estimated desnsity instead of actual points
 #               - Axis limits are computed properly
 #               - [NOT IMPLEMENTED YET!] Optionally, a panel plot of the first k principal components in pairs (e.g. top PCs explaining 80% of the variation)
-# Parameters:  
+# Parameters:
 #               x:  An object of class princomp
 # Output:       When outliersFlag=TRUE, a data frame containing the points identified as outliers on the analyzed principal components
 #								is returned.
 # Assumptions:  There are NO missing values (NA) in the data!
 {
-  
+
   #----- DEFINE AUXILIARY FUNCTIONS -----#
   plot.ArrowsAndPoints = function(x, arrowsFlag=TRUE, pointsFlag=FALSE, outliersFlag=TRUE, pointlabels=NULL, thr=4, outliersMaxPct=0.5) {
     # Function to plot the arrows representing the projection of the variable axes into the PCs and optionally the observations as points
@@ -2151,7 +2167,7 @@ biplot.custom = function(x, pc=1:2, arrowsFlag=TRUE, pointsFlag=FALSE, outliersF
     axis(2, at=yticks, labels=yticks, col="blue", col.ticks="blue")
     mtext(paste("Comp.", pc[1], sep=""), side=1, line=3, las=1)   # xlabel
     mtext(paste("Comp.", pc[2], sep=""), side=2, line=3, las=0)   # ylabel
-    
+
     ### Variables on which the PCA was applied (they are given by the row names of the loadings matrix provided by the princomp object x)
     vars = rownames(x$loadings)
 
@@ -2220,20 +2236,20 @@ biplot.custom = function(x, pc=1:2, arrowsFlag=TRUE, pointsFlag=FALSE, outliersF
       # Compute contributed percentage of each variable on the analyzed PCs w.r.t. all PCs
       contrPct = x$loadings / apply(abs(x$loadings), 1, FUN=sum) * 100
       contrPct.pc = apply(abs(contrPct[,pc]), 1, FUN=sum)
-      
+
       # Jitter arrow ends for the position of variable labels to increase readability
       set.seed(1717)
       pos.labels = jitter(arrows.end, factor=10)
-  
+
       # Define symmetric axis so that the (0,0) of the arrows coincide with the (0,0) of the density contours already plotted!
       xlim = range(c(arrows.start[,1], arrows.end[,1], pos.labels[,1])); xlim = c(-max(abs(xlim)), max(abs(xlim)))
       ylim = range(c(arrows.start[,2], arrows.end[,2], pos.labels[,2])); ylim = c(-max(abs(ylim)), max(abs(ylim)))
-  
+
       # Create a new plot on the existing density contour
       par(new=TRUE)
       plot(arrows.end, type="n", xaxt="n", yaxt="n", xlim=xlim, ylim=ylim, xlab="", ylab="")
       arrows(arrows.start[,1], arrows.start[,2], arrows.end[,1], arrows.end[,2], length=0.15, col="blue")
-  
+
       # Add the labels indicating the variable names corresponding to each arrow
       usr = par("usr")
       xticks = axTicks(1, usr=usr[1:2], log=FALSE)
@@ -2252,7 +2268,7 @@ biplot.custom = function(x, pc=1:2, arrowsFlag=TRUE, pointsFlag=FALSE, outliersF
 
   # Compute the 2D estimated density of the first PCs
   x.kde = kde2d(x$scores[,pc[1]], x$scores[,pc[2]], n=25)  # n=25 is the default number of grid points to generate for the density plotting
-  
+
   # Set symmetric plot limits so that the (0,0) for the density contour (of observations) and variables match on the same position!
   xlim = range(x.kde$x); xlim = c(-max(abs(xlim)), max(abs(xlim)))
   ylim = range(x.kde$y); ylim = c(-max(abs(ylim)), max(abs(ylim)))
@@ -2261,7 +2277,7 @@ biplot.custom = function(x, pc=1:2, arrowsFlag=TRUE, pointsFlag=FALSE, outliersF
   filled.contour(x.kde$x, x.kde$y, x.kde$z, xlim=xlim, ylim=ylim,
                               color.palette=my.colors<-function(nlevels) { whitered.palette(nlevels) },  # nlevels is a parameter defined by default in filled.contour()
                               plot.axes=plot.ArrowsAndPoints(x, arrowsFlag=arrowsFlag, pointsFlag=pointsFlag, outliersFlag=outliersFlag, pointlabels=pointlabels, thr=thr, outliersMaxPct=outliersMaxPct), ...)
-  
+
   if (outliersFlag) {
     # indOutliers is created in function plot.ArrowsAndPoints()
     outliers = data.frame(V1=x$scores[indOutliers,pc[1]], V2=x$scores[indOutliers,pc[2]], V3=hat[indOutliers])
@@ -2282,7 +2298,7 @@ biplot.custom = function(x, pc=1:2, arrowsFlag=TRUE, pointsFlag=FALSE, outliersF
 #    } else {
 #    	ind = 1:length(hat)
 #    }
-		# Use as x values the percentage accumulated 
+		# Use as x values the percentage accumulated
 		ind = (1:length(hat))/length(hat)*100
     plot(ind, hat[ord], main="Leverage values", xlab="Cumulative Percent of Cases", ylab="Standardized Mahalanobis distance", type="p", pch=21, col="black", bg="black", xaxt="n")
     lines(ind, hat[ord], col="black")
@@ -2408,11 +2424,11 @@ plot.cdf = function(x, weight=NULL, probs=seq(0,1,0.01), empirical=TRUE, include
     paramsList$main = ""
 	}
 	# OLD WAY: WHICH DOES NOT SOLVE THE PROBLEM OF THE USER PASSING ONE OF THE PARAMETERS BELOW AS PART OF THE ... ARGUMENT OF THE plot.cdf() FUNCTION
-#	if (!exists("type", envir=sys.nframe(), mode="name")) { type = "l" } 
+#	if (!exists("type", envir=sys.nframe(), mode="name")) { type = "l" }
 #	if (!exists("xaxt", envir=sys.nframe(), mode="name")) { xaxt = par("xaxt") }
 #	if (!exists("yaxt", envir=sys.nframe(), mode="name")) { yaxt = par("yaxt") }
 #	if (!exists("xlab", envir=sys.nframe(), mode="name")) { xlab = deparse(substitute(x)) }
-#	if (!exists("ylab", envir=sys.nframe(), mode="name")) { ylab = "cdf" } 
+#	if (!exists("ylab", envir=sys.nframe(), mode="name")) { ylab = "cdf" }
 #	if (!exists("main", envir=sys.nframe(), mode="name")) { main = paste("Total cases:", length(x)-na.check) }
 
 	# Update paramsList for a proper call to plot() below
@@ -2425,7 +2441,7 @@ plot.cdf = function(x, weight=NULL, probs=seq(0,1,0.01), empirical=TRUE, include
 	paramsList$freq = NULL
 	paramsList$weight = NULL
 	paramsList$reverse = NULL
-	
+
 	par(new=add)
 	# Use do.call() to mimic the following plot:
 	# plot(x.cdf, cdf.values, type=type, xlab=xlab, ylab=ylab, xaxt=xaxt, yaxt=yaxt, main=main, ...)
@@ -2514,7 +2530,7 @@ plot.bar <- plot.bars <- function(x, y, event="1", FUN="table", na.rm=FALSE, dec
 
 	# Check if parameter x is already a table containing the raw numbers of what should be plotted
 	if (is.matrix(x) || is.data.frame(x)) {
-		# The input matrix is considered to be already a computed table (i.e. the output of 
+		# The input matrix is considered to be already a computed table (i.e. the output of
 		tab = x
 		if (!("n" %in% colnames(tab)) | (bars & !("sd" %in% colnames(tab)))) {
 			stop("Input parameter '", deparse(substitute(x)), "' does NOT contain the necessary column names ('n' and/or 'sd').\nColumn names are: ", colnames(x))
@@ -2679,7 +2695,7 @@ cumplot = function(x, y, decreasing=TRUE, plot=TRUE, type="l", col="blue", ...)
   } else {
   	TopBottom = "Bottom"
   }
-  
+
   # % Cumulative x values
   toplot$xcum = cumsum(toplot$x)
   toplot$xcumpct = toplot$xcum / toplot$xcum[n] * 100
