@@ -251,6 +251,8 @@ dm_qualify_vars <- QualifyVars <- function(
 					if (varclass != "rejected" && print) cat("\n")
 					df.varcat = rbind(df.varcat, data.frame(var=v, class=varclass, type=type, nobs=ntotal, nvalues=result[,nvaluescol], pvalues=result[,nvaluescol]/ntotal, pmiss=result[,nmisscol]/ntotal, pvalue=result[,nvaluecol]/ntotal, pmaxcat=propmax))
 				}
+			} else {
+			  rejected = 1
 			}
 
 			# Mark as non-relevant (rejected) the categories having less than minncat / minpropcat number of cases
